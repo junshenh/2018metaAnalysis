@@ -9,7 +9,7 @@ class HistPair(object):
 
     def __init__(self, config,
                  data_series, data_sample, data_run, data_name, data_hist,
-                 ref_series, ref_sample, ref_run, ref_name, ref_hist):
+                 ref_series, ref_sample, ref_runs, ref_name, ref_hists):
 
         self.data_series = data_series
         self.data_sample = data_sample
@@ -19,9 +19,9 @@ class HistPair(object):
 
         self.ref_series = ref_series
         self.ref_sample = ref_sample
-        self.ref_run = ref_run
+        self.ref_runs = ref_runs
         self.ref_name = ref_name
-        self.ref_hist = ref_hist
+        self.ref_hists = ref_hists
 
         self.config = config
         self.comparators = config.get(
@@ -45,5 +45,5 @@ class HistPair(object):
         #     json.dumps(self.config, sort_keys=True))
         return hash(
             str(self.data_series) + str(self.data_sample) + str(self.data_run) + str(self.data_name) +
-            str(self.ref_series) + str(self.ref_sample) + str(self.ref_run) + str(self.ref_name) +
+            str(self.ref_series) + str(self.ref_sample) + str(self.ref_runs[0]) + str(self.ref_name) +
             json.dumps(self.config, sort_keys=True))

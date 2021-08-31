@@ -5,6 +5,7 @@ import ROOT
 from plugin_results import PluginResults
 import numpy as np
 import time
+import root_numpy
 
 def comparators():
     return {
@@ -17,12 +18,15 @@ def pullvals(histpair,
              **kwargs):
     """Can handle poisson driven TH2s or generic TProfile2Ds"""
     data_hist = histpair.data_hist
-    ref_hist = histpair.ref_hist
+    ref_hists = histpair.ref_hists
 
 
     # Check that the hists are histograms
-    if not data_hist.InheritsFrom('TH1') or not ref_hist.InheritsFrom('TH1'):
+    if not data_hist.InheritsFrom('TH1'):
         return None
+    for ref_hist in ref_hists:
+        if not ref_hist.InheritsFrom('TH1'):
+            return None
 
     # Check that the hists are 2 dimensional
     if data_hist.GetDimension() != 2 or ref_hist.GetDimension() != 2:
@@ -34,20 +38,30 @@ def pullvals(histpair,
 
     # Get empty clone of reference histogram for pull hist
     if ref_hist.InheritsFrom('TProfile2D'):
-        pull_hist = ref_hist.ProjectionXY("pull_hist")
+        pull_hist = ref_hists[0].ProjectionXY("pull_hist")
     else:
-        pull_hist = ref_hist.Clone("pull_hist")
+        pull_hist = ref_hists[0].Clone("pull_hist")
     pull_hist.Reset()
 
     # Reject empty histograms
     is_good = data_hist.GetEntries() != 0 and data_hist.GetEntries() >= min_entries
+    
+    
+    ## normalize 
+    data_hist.Scale(1/data_hist.GetSumOfWeights())
+    for ref_hist in ref_hists:
+        ref_hist.Scale(1/ref_hist.GetSumOfWeights())
 
-    # Normalize data_hist
-    if norm_type == "row":
-        normalize_rows(data_hist, ref_hist)
-    else:
-        if data_hist.GetEntries() > 0:
-            data_hist.Scale(ref_hist.GetSumOfWeights() / data_hist.GetSumOfWeights())
+        
+    ## calculate the avg between all runs?
+    ref_hists_contents = []
+    for ref_hist in ref_hists:        
+        ref_hists_contents.append(root_numpy.hist2array(ref_hist))
+    ref_hists_contents = np.array(ref_hists_contents).mean(axis=0)
+
+        
+    ## loop over all refs to calculate the chi2 and pul? 
+   
 
     max_pull = 0
     nBins = 0
@@ -204,3 +218,6 @@ def normalize_rows(data_hist, ref_hist):
             data_hist.SetBinError(x, y, (fbin_err * sf))
 
     return
+
+
+    

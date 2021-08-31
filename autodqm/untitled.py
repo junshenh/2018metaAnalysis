@@ -6,9 +6,9 @@ Created on Sun Jan  3 23:41:47 2021
 @author: si_sutantawibul1
 """
 import sys
-sys.path.insert(1, '/home/chosila/Projects/AutoDQM-p3/autodqm')
+sys.path.insert(1, '/home/chosila/Projects/2018metaAnalysis/autodqm')
 import importlib.util
-spec = importlib.util.spec_from_file_location('compare_hists', '/home/chosila/Projects/AutoDQM-p3/autodqm/compare_hists.py')
+spec = importlib.util.spec_from_file_location('compare_hists', '/home/chosila/Projects/2018metaAnalysis/autodqm/compare_hists.py')
 compare_hists = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(compare_hists)
 import ROOT
@@ -30,7 +30,8 @@ datadirs = [basedatadir + i for i in os.listdir(basedatadir)]
 refdirs = [baserefdir + i for i in os.listdir(baserefdir)]
 #datadirs = [baserefdir + i for i in os.listdir(baserefdir)]
 data_path = 'rootfiles/data/DQM_V0001_L1T_R000320008.root'
-ref_path = 'rootfiles/ref/DQM_V0001_L1T_R000320025.root'
+ref_paths = ['rootfiles/ref/DQM_V0001_L1T_R000320025.root', 
+            'rootfiles/ref/DQM_V0001_L1T_R000320002.root']
 config_dir = '../config'
 subsystem = 'EMTF'
 data_series = 'Run2018'
@@ -40,12 +41,12 @@ data_run = data_path[-11:-5]
 ref_series = 'Run2018'
 ref_sample = 'L1T'
 refruns = [i[-11:-5] for i in refdirs]
-ref_run = ref_path[-11:-5]
+ref_runs = [x[-11:-5] for x in ref_paths]
 
 ynbins = 22
 xnbins = 20
 props = dict(boxstyle='round', facecolor='white')
-plotdir = f'plots/data{data_run[-2:]}ref{ref_run[-2:]}'
+plotdir = f'plots/data{data_run[-2:]}' #ref{ref_run[-2:]}'
 
 
 loadpkl = False
@@ -144,12 +145,12 @@ run2d = list()
 #     results = pickle.load(open('out/results.pkl', 'rb'))
 
 data_run = data_path[-11:-5]
-print(f'ref path: {ref_path}')
+#print(f'ref path: {ref_path}')
 print(f'data path: {data_path}')
 results = compare_hists.process(config_dir, subsystem,
                                 data_series, data_sample, data_run, data_path,
-                                ref_series, ref_sample, ref_run, ref_path,
-                                output_dir='./out/', plugin_dir='/home/chosila/Projects/AutoDQM-p3/plugins')
+                                ref_series, ref_sample, ref_runs, ref_paths,
+                                output_dir='./out/', plugin_dir='/home/chosila/Projects/2018metaAnalysis/plugins')
 
 for result in results:
     hists = result['hists']

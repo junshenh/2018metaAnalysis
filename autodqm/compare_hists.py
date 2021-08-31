@@ -10,11 +10,11 @@ import ROOT
 import cfg
 #from autodqm.histpair import HistPair
 from histpair import HistPair
-sys.path.insert(1, '/Users/si_sutantawibul1/Projects/AutoDQM/plugins')
+sys.path.insert(1, '/Users/si_sutantawibul1/Projects/2018metaAnalysis/plugins')
 
 def process(config_dir, subsystem,
             data_series, data_sample, data_run, data_path,
-            ref_series, ref_sample, ref_run, ref_path,
+            ref_series, ref_sample, ref_runs, ref_paths,
             output_dir='./out/', plugin_dir='./plugins/'):
 
     # Ensure no graphs are drawn to screen and no root messages are sent to
@@ -25,7 +25,7 @@ def process(config_dir, subsystem,
 
     histpairs = compile_histpairs(config_dir, subsystem,
                                   data_series, data_sample, data_run, data_path,
-                                  ref_series, ref_sample, ref_run, ref_path)
+                                  ref_series, ref_sample, ref_runs, ref_paths)
 
     for d in [output_dir + s for s in ['/pdfs', '/jsons', '/pngs']]:
         if not os.path.exists(d):
@@ -114,7 +114,7 @@ def getall(d, h):
 
 def compile_histpairs(config_dir, subsystem,
                       data_series, data_sample, data_run, data_path,
-                      ref_series, ref_sample, ref_run, ref_path):
+                      ref_series, ref_sample, ref_runs, ref_paths):
 
     config = cfg.get_subsystem(config_dir, subsystem)
     # Histogram details
@@ -123,7 +123,7 @@ def compile_histpairs(config_dir, subsystem,
 
     # ROOT files
     data_file = ROOT.TFile.Open(data_path)
-    ref_file = ROOT.TFile.Open(ref_path)
+    ref_files = [ROOT.TFile.Open(x) for x in ref_paths]
 
     histPairs = []
     
@@ -140,20 +140,21 @@ def compile_histpairs(config_dir, subsystem,
         gdir = str(hconf["path"].split(h)[0])
 
         data_dirname = "{0}{1}".format(main_gdir.format(data_run), gdir)
-        ref_dirname = "{0}{1}".format(main_gdir.format(ref_run), gdir)
+        ref_dirnames = ["{0}{1}".format(main_gdir.format(x), gdir) for x in ref_runs]
 
         data_dir = data_file.GetDirectory(data_dirname)
-        ref_dir = ref_file.GetDirectory(ref_dirname)
+        ref_dirs = [x.GetDirectory(y) for x,y in zip(ref_files, ref_dirnames)]
 
         if not data_dir:
             raise error(
                 "Subsystem dir {0} not found in data root file".format(data_dirname))
-        if not ref_dir:
-            raise error(
-                "Subsystem dir {0} not found in ref root file".format(ref_dirname))
+        for ref_dir, ref_dirname in zip(ref_dirs, ref_dirnames):
+            if not ref_dir:
+                raise error(
+                    "Subsystem dir {0} not found in ref root file".format(ref_dirname))
 
         data_keys = data_dir.GetListOfKeys()
-        ref_keys = ref_dir.GetListOfKeys()
+        ref_keys = ref_dirs[0].GetListOfKeys()
 
         valid_names = []
     
@@ -171,19 +172,20 @@ def compile_histpairs(config_dir, subsystem,
         # Load the histograms and create HistPairs
         for name in valid_names:
             data_hist = data_dir.Get(name)
-            ref_hist = ref_dir.Get(name)
+            ref_hists = [ref_dir.Get(name) for ref_dir in ref_dirs]
 
             # This try/catch is a dirty way of checking that this objects are something plottable
             try:
                 data_hist.SetDirectory(0)
-                ref_hist.SetDirectory(0)
+                for ref_hist in ref_hists:
+                    ref_hist.SetDirectory(0)
                 histlist.append(f'{data_dirname}{name}')
             except:
                 continue
 
             hPair = HistPair(hconf,
                              data_series, data_sample, data_run, name, data_hist,
-                             ref_series, ref_sample, ref_run, name, ref_hist)
+                             ref_series, ref_sample, ref_runs, name, ref_hists)
             histPairs.append(hPair)
 
     for i in histlist: 
@@ -195,7 +197,7 @@ def compile_histpairs(config_dir, subsystem,
     
 
     data_file.Close()
-    ref_file.Close()
+    [ref_file.Close() for ref_file in ref_files]
     return histPairs
 
 
@@ -213,7 +215,7 @@ def load_comparators(plugin_dir):
         if modname[-3:] == '.py':
             modname = modname[:-3]
         try:
-            sys.path.append('/home/chosila/Projects/AutoDQM-p3/plugins')
+            sys.path.append('/home/chosila/Projects/2018metaAnalysis/plugins')
             # mod = __import__(f"{modname}")
             if modname == 'ks':
                 import ks as mod
@@ -237,7 +239,7 @@ def identifier(hp, comparator_name):
     """Return a `hashed` identifier for the histpair"""
     data_id = "DATA-{}-{}-{}".format(hp.data_series,
                                      hp.data_sample, hp.data_run)
-    ref_id = "REF-{}-{}-{}".format(hp.ref_series, hp.ref_sample, hp.ref_run)
+    ref_id = "REF-{}-{}-{}".format(hp.ref_series, hp.ref_sample, hp.ref_runs[0])
     if hp.data_name == hp.ref_name:
         name_id = hp.data_name
     else:
