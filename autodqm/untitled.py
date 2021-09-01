@@ -6,9 +6,9 @@ Created on Sun Jan  3 23:41:47 2021
 @author: si_sutantawibul1
 """
 import sys
-sys.path.insert(1, '/home/chosila/Projects/AutoDQM-p3/autodqm')
+sys.path.insert(1, '/home/chosila/Projects/2018metaAnalysis/autodqm')
 import importlib.util
-spec = importlib.util.spec_from_file_location('compare_hists', '/home/chosila/Projects/AutoDQM-p3/autodqm/compare_hists.py')
+spec = importlib.util.spec_from_file_location('compare_hists', '/home/chosila/Projects/2018metaAnalysis/autodqm/compare_hists.py')
 compare_hists = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(compare_hists)
 import ROOT
@@ -41,6 +41,10 @@ ref_series = 'Run2018'
 ref_sample = 'L1T'
 refruns = [i[-11:-5] for i in refdirs]
 ref_run = ref_path[-11:-5]
+ref_list = ['rootfiles/ref/DQM_V0001_L1T_R000320025.root', 
+             'rootfiles/ref/DQM_V0001_L1T_R000320002.root',
+             'rootfiles/ref/DQM_V0001_L1T_R000320006.root']
+ref_list_runs = [i[-11:-5] for i in ref_list]
 
 ynbins = 22
 xnbins = 20
@@ -149,7 +153,8 @@ print(f'data path: {data_path}')
 results = compare_hists.process(config_dir, subsystem,
                                 data_series, data_sample, data_run, data_path,
                                 ref_series, ref_sample, ref_run, ref_path,
-                                output_dir='./out/', plugin_dir='/home/chosila/Projects/AutoDQM-p3/plugins')
+                                ref_list, ref_list_runs,
+                                output_dir='./out/', plugin_dir='/home/chosila/Projects/2018metaAnalysis/plugins')
 
 for result in results:
     hists = result['hists']

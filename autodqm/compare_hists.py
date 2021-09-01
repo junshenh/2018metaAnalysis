@@ -15,6 +15,7 @@ sys.path.insert(1, '/Users/si_sutantawibul1/Projects/AutoDQM/plugins')
 def process(config_dir, subsystem,
             data_series, data_sample, data_run, data_path,
             ref_series, ref_sample, ref_run, ref_path,
+            ref_list, ref_list_runs,
             output_dir='./out/', plugin_dir='./plugins/'):
 
     # Ensure no graphs are drawn to screen and no root messages are sent to
@@ -25,7 +26,8 @@ def process(config_dir, subsystem,
 
     histpairs = compile_histpairs(config_dir, subsystem,
                                   data_series, data_sample, data_run, data_path,
-                                  ref_series, ref_sample, ref_run, ref_path)
+                                  ref_series, ref_sample, ref_run, ref_path,
+                                  ref_list, ref_list_runs)
 
     for d in [output_dir + s for s in ['/pdfs', '/jsons', '/pngs']]:
         if not os.path.exists(d):
@@ -114,7 +116,8 @@ def getall(d, h):
 
 def compile_histpairs(config_dir, subsystem,
                       data_series, data_sample, data_run, data_path,
-                      ref_series, ref_sample, ref_run, ref_path):
+                      ref_series, ref_sample, ref_run, ref_path,
+                      ref_list, ref_list_runs):
 
     config = cfg.get_subsystem(config_dir, subsystem)
     # Histogram details
@@ -124,6 +127,12 @@ def compile_histpairs(config_dir, subsystem,
     # ROOT files
     data_file = ROOT.TFile.Open(data_path)
     ref_file = ROOT.TFile.Open(ref_path)
+    ref_file_list = [ROOT.TFile.Open(x) for x in ref_list]
+
+    print('ref_fileJ: ', ref_file)
+    print('ref_list: ', ref_file_list)
+
+
 
     histPairs = []
     
@@ -213,7 +222,7 @@ def load_comparators(plugin_dir):
         if modname[-3:] == '.py':
             modname = modname[:-3]
         try:
-            sys.path.append('/home/chosila/Projects/AutoDQM-p3/plugins')
+            sys.path.append('/home/chosila/Projects/2018metaAnalysis/plugins')
             # mod = __import__(f"{modname}")
             if modname == 'ks':
                 import ks as mod
