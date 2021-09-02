@@ -22,6 +22,15 @@ def pullvals(histpair,
     ref_hists_list = histpair.ref_hists_list
 
 
+    #-------------  !!!! REMOVE AFTER TEST ------------------------------
+
+    # if data_hist.InheritsFrom('TH2'):
+    #     return None
+    #--------------------------------------------------------------------
+
+
+
+
     # Check that the hists are histograms
     if not data_hist.InheritsFrom('TH1') or not ref_hist.InheritsFrom('TH1'):
         return None

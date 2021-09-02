@@ -61,7 +61,12 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
         avg_ref_hists_list.append(root_numpy.hist2array(i))
     ref_hists_arr = np.array(avg_ref_hists_list)
     refErr = np.std(ref_hists_arr, axis=0)  
-
+    
+    if 'LCTWireMENeg' in ref_name:
+        print(refErr)   
+        print(ref_name)
+        print('-------------------------------')
+    
 
     pull_cap = 25
     ## chi2 and pull vals
@@ -82,6 +87,7 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
 
         # Count bins for chi2 calculation
         nBins += 1
+        if (bin1+bin2) > 0: nBinsUsed +=1
 
         # Ensure that divide-by-zero error is not thrown when calculating pull
         if bin1err == 0 and bin2err == 0:
@@ -107,7 +113,6 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
             fill_val = -999
     # Compute chi2
     chi2 = (chi2 / nBins)
-
 
 
     info = {
