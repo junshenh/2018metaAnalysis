@@ -81,7 +81,7 @@ def pullvals(histpair,
                 new_pull = 0
             else:
                 new_pull = pull(bin1, bin1err, bin2, bin2err)
-                #new_pull = maxPullNorm(new_pull, nBinsUsed)
+                new_pull = maxPullNorm(new_pull, nBinsUsed)
 
             # Sum pulls
             chi2 += new_pull**2

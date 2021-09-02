@@ -5,6 +5,7 @@ import ROOT
 #from autodqm.plugin_results import PluginResults
 from plugin_results import PluginResults
 from pullvals import pull
+import numpy as np
 
 
 def comparators():
@@ -49,6 +50,7 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     ## chi2 and pull vals
     max_pull = 0
     nBins = 0
+    nBinsUsed = 0
     chi2 = 0
     for i in range(1, ref_hist.GetNbinsX() + 1):
         # Bin 1 data
@@ -62,18 +64,21 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
 
         # Count bins for chi2 calculation
         nBins += 1
+        if (bin1+bin2) > 0: nBinsUsed +=1 
 
         # Ensure that divide-by-zero error is not thrown when calculating pull
         if bin1err == 0 and bin2err == 0:
             new_pull = 0
         else:
             new_pull = pull(bin1, bin1err, bin2, bin2err)
+            new_pull = maxPullNorm(new_pull, nBinsUsed)
 
         # Sum pulls
         chi2 += new_pull**2
 
         # Check if max_pull
         max_pull = max(max_pull, abs(new_pull))
+        max_pull = maxPullNorm(max_pull, nBinsUsed)
 
         # Clamp the displayed value
         fill_val = max(min(new_pull, pull_cap), -pull_cap)
@@ -102,6 +107,24 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
         show=is_outlier,
         info=info,
         artifacts=artifacts)
+
+
+def pull(bin1, binerr1, bin2, binerr2):
+    ''' Calculate the pull value between two bins.
+        pull = (data - expected)/sqrt(sum of errors in quadrature))
+        data = |bin1 - bin2|, expected = 0
+    '''
+    ## changing to pull with tolerance
+    # return (bin1 - bin2) / ((binerr1**2 + binerr2**2)**0.5)
+    return np.abs(bin1 - bin2)/(np.sqrt(np.power(binerr1,2)+np.power(binerr2,2)+0.01*(bin1+bin2)))
+
+def maxPullNorm(maxPull, nBinsUsed):
+    prob = ROOT.TMath.Prob(np.power(maxPull, 2),1)
+    probNorm = 1-np.power((1-prob),nBinsUsed)
+    ## .9999999999999999 is the max that can go into chi2quantile
+    val = (1-probNorm) 
+    val = val if val < .9999999999999999 else .9999999999999999
+    return np.sqrt(ROOT.TMath.ChisquareQuantile(val,1))
 
 
 def draw_same(data_hist, data_run, ref_hist, ref_run):
