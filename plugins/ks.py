@@ -5,8 +5,13 @@ import ROOT
 #from autodqm.plugin_results import PluginResults
 from plugin_results import PluginResults
 from pullvals import pull
+<<<<<<< HEAD
 import root_numpy
 import numpy as np
+=======
+import numpy as np
+
+>>>>>>> origin/master
 
 def comparators():
     return {
@@ -103,6 +108,7 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
         max_pull = max(max_pull, abs(new_pull))
         max_pull = maxPullNorm(max_pull, nBinsUsed)
 
+
         # Clamp the displayed value
         fill_val = max(min(new_pull, pull_cap), -pull_cap)
 
@@ -147,6 +153,10 @@ def maxPullNorm(maxPull, nBinsUsed):
     val = val if val < .9999999999999999 else .9999999999999999
     return np.sqrt(ROOT.TMath.ChisquareQuantile(val,1))
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/master
 def draw_same(data_hist, data_run, ref_hist, ref_run):
     # Set up canvas
     c = ROOT.TCanvas('c', 'c')
