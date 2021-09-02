@@ -5,6 +5,7 @@ import ROOT
 from plugin_results import PluginResults
 import numpy as np
 import time
+import root_numpy
 
 def comparators():
     return {
@@ -18,6 +19,7 @@ def pullvals(histpair,
     """Can handle poisson driven TH2s or generic TProfile2Ds"""
     data_hist = histpair.data_hist
     ref_hist = histpair.ref_hist
+    ref_hists_list = histpair.ref_hists_list
 
 
     # Check that the hists are histograms
@@ -43,12 +45,26 @@ def pullvals(histpair,
     is_good = data_hist.GetEntries() != 0 and data_hist.GetEntries() >= min_entries
 
     # Normalize data_hist
-    if norm_type == "row":
-        normalize_rows(data_hist, ref_hist)
-    else:
-        if data_hist.GetEntries() > 0:
-            data_hist.Scale(ref_hist.GetSumOfWeights() / data_hist.GetSumOfWeights())
-
+    # if norm_type == "row":
+    #     normalize_rows(data_hist, ref_hist)
+    # else:
+    #     if data_hist.GetEntries() > 0:
+    #         data_hist.Scale(ref_hist.GetSumOfWeights() / data_hist.GetSumOfWeights())
+    if data_hist.GetEntries() > 0: 
+        data_hist.Scale(1/data_hist.GetSumOfWeights())
+    if ref_hist.GetEntries() > 0: 
+        ref_hist.Scale(1/data_hist.GetSumOfWeights())
+    for i in ref_hists_list:
+        if i.GetEntries() > 0:
+            i.Scale(1/i.GetSumOfWeights())
+            
+    # calculate the average of all ref_hists_list 
+    avg_ref_hists_list = []
+    for i in ref_hists_list:
+        avg_ref_hists_list.append(root_numpy.hist2array(i))
+    ref_hists_arr = np.array(avg_ref_hists_list)
+    refErr = np.std(ref_hists_arr, axis=0)    
+    
     max_pull = 0
     nBins = 0
     nBinsUsed = 0
@@ -68,9 +84,10 @@ def pullvals(histpair,
             # TEMPERARY - Getting Symmetric Error - Need to update with >Proper Poisson error 
             if ref_hist.InheritsFrom('TProfile2D'):
                 bin1err = data_hist.GetBinError(x, y)
-                bin2err = ref_hist.GetBinError(x, y)
+                #bin2err = ref_hist.GetBinError(x, y)
+                bin2err = refErr[x-1,y-1] # -1 because root index from 1 apparently
             else:
-                bin1err, bin2err = bin1**(.5), bin2**(.5)
+                bin1err, bin2err = bin1**(.5), refErr[x-1,y-1]#bin2**(.5)
 
             # Count bins for chi2 calculation
             nBins += 1
@@ -81,7 +98,7 @@ def pullvals(histpair,
                 new_pull = 0
             else:
                 new_pull = pull(bin1, bin1err, bin2, bin2err)
-                #new_pull = maxPullNorm(new_pull, nBinsUsed)
+                new_pull = maxPullNorm(new_pull, nBinsUsed)
 
             # Sum pulls
             chi2 += new_pull**2

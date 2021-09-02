@@ -41,10 +41,8 @@ ref_series = 'Run2018'
 ref_sample = 'L1T'
 refruns = [i[-11:-5] for i in refdirs]
 ref_run = ref_path[-11:-5]
-ref_list = ['rootfiles/ref/DQM_V0001_L1T_R000320025.root', 
-             'rootfiles/ref/DQM_V0001_L1T_R000320002.root',
-             'rootfiles/ref/DQM_V0001_L1T_R000320006.root']
-ref_list_runs = [i[-11:-5] for i in ref_list]
+ref_runs_list = [319756, 319849, 319853, 319854, 319910, 319915, 319941, 319991, 319992, 319993]
+ref_list = [f'rootfiles/ref/DQM_V0001_L1T_R000{x}.root' for x in ref_runs_list]
 
 ynbins = 22
 xnbins = 20
@@ -153,7 +151,7 @@ print(f'data path: {data_path}')
 results = compare_hists.process(config_dir, subsystem,
                                 data_series, data_sample, data_run, data_path,
                                 ref_series, ref_sample, ref_run, ref_path,
-                                ref_list, ref_list_runs,
+                                ref_list, ref_runs_list,
                                 output_dir='./out/', plugin_dir='/home/chosila/Projects/2018metaAnalysis/plugins')
 
 for result in results:
