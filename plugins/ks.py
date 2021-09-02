@@ -78,7 +78,7 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
 
         # Check if max_pull
         max_pull = max(max_pull, abs(new_pull))
-        max_pull = maxPullNorm(max_pull, nBinsUsed)
+        #max_pull = maxPullNorm(max_pull, nBinsUsed)
 
         # Clamp the displayed value
         fill_val = max(min(new_pull, pull_cap), -pull_cap)
