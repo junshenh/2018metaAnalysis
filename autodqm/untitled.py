@@ -29,8 +29,8 @@ baserefdir = 'rootfiles/ref/'
 datadirs = [basedatadir + i for i in os.listdir(basedatadir)]
 refdirs = [baserefdir + i for i in os.listdir(baserefdir)]
 #datadirs = [baserefdir + i for i in os.listdir(baserefdir)]
-data_path = 'rootfiles/data/DQM_V0001_L1T_R000320008.root'
-ref_path = 'rootfiles/ref/DQM_V0001_L1T_R000320025.root'
+data_path = 'rootfiles/ref/DQM_V0001_L1T_R000320002.root'
+ref_path = 'rootfiles/ref/DQM_V0001_L1T_R000320006.root'
 config_dir = '../config'
 subsystem = 'EMTF'
 data_series = 'Run2018'
@@ -44,10 +44,10 @@ ref_run = ref_path[-11:-5]
 ref_runs_list = [319756, 319849, 319853, 319854, 319910, 319915, 319941, 319991, 319992, 319993]
 ref_list = [f'rootfiles/ref/DQM_V0001_L1T_R000{x}.root' for x in ref_runs_list]
 
-ynbins = 22
+ynbins = 20
 xnbins = 20
 props = dict(boxstyle='round', facecolor='white')
-plotdir = f'plots/data{data_run[-2:]}ref{ref_run[-2:]}'
+plotdir = f'plots/data{data_run[-2:]}'
 
 
 loadpkl = False
@@ -84,31 +84,65 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
     '''
     if y =='ks':
         fig, ax = plt.subplots()
-        xbins = np.linspace(0, max(histdf[x]), xnbins)
-        ax.hist2d(histdf[x], histdf[y], norm=mpl.colors.LogNorm(), bins=[xbins, ybins])
+        # xbins = np.linspace(0, max(histdf[x]), xnbins)
+        if 'nevents' in x:
+            xmin, xmax = np.log2(1), np.log2(max(histdf[x]))
+        elif 'nbins' in x: 
+            xmin, xmax = np.log2(1), np.log2(max(histdf[x]))
+        elif 'avg' in x: 
+            xmin, xmax = np.log2(2**-5), np.log2(max(histdf[x]))
+        # ymin, ymax = np.log2(2**-10), np.log2(max(histdf[y]))
+        logxbins = np.logspace(xmin, xmax, xnbins, base=2)
+        logybins = ybins#np.logspace(ymin, ymax, xnbins, base=2)
+        
+        counts, _, _ = np.histogram2d(histdf[x], histdf[y], bins=(logxbins, logybins))
+        # ax.hist2d(histdf[x], histdf[y], norm=mpl.colors.LogNorm(), bins=(xbins,ybins))
+        ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm())
+        ax.set_xscale('log', base=2)
+        ax.set_yscale('log', base=2)
+
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
+
         ax.set_title(title)
         textstr = generateLabel(df=histdf, y=y, x=x)
-        ax.text(1.05*max(histdf[x]), 0.5*max(histdf[y]), textstr, bbox=props)
+        ax.text(1.25*max(histdf[x]), logybins[9], textstr, bbox=props)
         plt.savefig(f'{plotdir}/{plotname}.png', bbox_inches='tight')
         plt.show()
         plt.close(fig)
     else: 
         fig, ax = plt.subplots()
-        xbins = np.linspace(0, max(histdf[x]), xnbins)
-        ybinlabels = ybins.astype(str)[::2]
-        ybinlabels[-1] += '+'
+        #xbins = np.linspace(0, max(histdf[x]), xnbins)
+        if 'nevents' in x:
+            xmin, xmax = np.log2(1), np.log2(max(histdf[x]))
+        elif 'nbins' in x: 
+            xmin, xmax = np.log2(1), np.log2(max(histdf[x]))
+        elif 'avg' in x: 
+            xmin, xmax = np.log2(2**-5), np.log2(max(histdf[x]))
+        #ymin, ymax = np.log2(2**-10), np.log2(max(histdf[y]))
+        logxbins = np.logspace(xmin, xmax, xnbins, base=2)
+        logybins = ybins#np.logspace(ymin, ymax, xnbins, base=2)
         maxval = ybins[-2]
-        ytoplot = np.clip(histdf[y], a_min=0, a_max=maxval)
-        ax.hist2d(histdf[x], ytoplot, norm=mpl.colors.LogNorm(), bins=[xbins, ybins])
+        # ytoplot = np.clip(histdf[y], a_min=0, a_max=maxval)
+        
+        counts, _, _ = np.histogram2d(histdf[x], histdf[y], bins=(logxbins, logybins))
+        
+        ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm())
+        ax.set_xscale('log', base=2)
+        ax.set_yscale('log', base=2)
+        
+        #ybinlabels = ybins.astype(str)[::2]
+        #ybinlabels[-1] += '+'
+        # maxval = ybins[-2]
+        # ytoplot = np.clip(histdf[y], a_min=0, a_max=maxval)
+        #ax.hist2d(histdf[x], ytoplot, norm=mpl.colors.LogNorm(), bins=[xbins, ybins])
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         ax.set_title(title)
-        ax.set_yticks(ybins[::2])
-        ax.set_yticklabels(ybinlabels)
+        #ax.set_yticks(ybins[::2])
+        #ax.set_yticklabels(ybinlabels)
         textstr = generateLabel(df=histdf, y=y, x=x)
-        ax.text(1.05*max(histdf[x]), 0.5*maxval, textstr, bbox=props)
+        ax.text(1.25*max(histdf[x]), logybins[9], textstr, bbox=props)
         plt.savefig(f'{plotdir}/{plotname}.png', bbox_inches='tight')
         plt.show()
         plt.close(fig)
@@ -133,6 +167,9 @@ histnames1d = list()
 histnames2d = list()
 run1d = list()
 run2d = list()
+
+nBinsUsed = list()
+pulls = list()
 
 
 # if not loadpkl:
@@ -168,7 +205,7 @@ for result in results:
 
             #------------------ pull values vs nbins ------------------
 
-            hist2dnbins.append(histarr.shape[0] * histarr.shape[1])
+            hist2dnbins.append(result['info']['nBins'])
             maxpulls.append(result['info']['Max_Pull_Val'])
 
             #-------------------------------------------------------------
@@ -186,6 +223,12 @@ for result in results:
             chi22d.append(result['info']['Chi_Squared'])
 
             #----------------------------------------------------------------
+            
+            #--------------------------- nbinsUsed ----------------------------
+            nBinsUsed.append(result['info']['nBinsUsed'])
+            pulls.append(result['info']['new_pulls'])
+            #------------------------------------------------------------------
+            
 
         elif hist.InheritsFrom('TH1'):
             ## have to make this plot both the data and ref
@@ -197,27 +240,10 @@ for result in results:
             histnames1d.append(result['name'])
             run1d.append(f"d{result['id'][40:46]}; r{result['id'][17:23]}")
 
-            #----------------- plotting autodqm output --------------------
-
-            ## this is a very jank way to check if it's data or ref, as data
-            ## is returned first
-            #if i < 1:
-            #    plt.bar(barval, histarr, label='data', color='m')
-            #else:
-                ## this is jank. it doesn't look nice but i should still be able
-                ## do analysis, it will be ugly
-            #    plt.bar(barval, histarr, label='ref', edgecolor='b', alpha=0.5, )
-            #plt.title(result['name'])
-            #plt.legend(loc='best')
-            #h1d.append([histarr,histedge])
-            #i = i+1
-
-            #-------------------------------------------------------------
-
 
             #------------------------ ks vs nbins ------------------------
 
-            hist1dnbins.append(histarr.shape[0])
+            hist1dnbins.append(result['info']['nBins'])
             kss.append(result['info']['KS_Val'])
 
             #-------------------------------------------------------------
@@ -239,6 +265,15 @@ for result in results:
 
     
 #------------------------- make pd of info, easy to mannip ------------------
+nevents1ddata = np.array(nevents1ddata)
+hist1dnbins = np.array(hist1dnbins)
+nevents1dref = np.array(nevents1dref)
+hist1dnbins = np.array(hist1dnbins)
+nevents2ddata = np.array(nevents2ddata)
+hist2dnbins = np.array(hist2dnbins)
+nevents2dref = np.array(nevents2dref)
+hist2dnbins = np.array(hist2dnbins)
+
 
 hists1d = pd.DataFrame(histnames1d)
 hists1d = hists1d.rename(columns={0: 'histnames'})
@@ -249,8 +284,8 @@ hists1d = hists1d.assign(neventsref = nevents1dref)
 hists1d = hists1d.assign(chi2 = chi21d)
 hists1d = hists1d.assign(maxpull = maxpull1d)
 hists1d = hists1d.assign(run=run1d)
-hists1d = hists1d.assign(avgdata = np.array(nevents1ddata)/np.array(hist1dnbins))
-hists1d = hists1d.assign(avgref = np.array(nevents1dref)/np.array(hist1dnbins))
+hists1d = hists1d.assign(avgdata = np.divide(nevents1ddata, hist1dnbins))
+hists1d = hists1d.assign(avgref = np.divide(nevents1dref,hist1dnbins))
 hists1d = hists1d.assign(chi2 = chi21d)
 
 hists2d = pd.DataFrame(histnames2d)
@@ -261,8 +296,8 @@ hists2d = hists2d.assign(neventsdata = nevents2ddata)
 hists2d = hists2d.assign(neventsref = nevents2dref)
 hists2d = hists2d.assign(chi2 = chi22d)
 hists2d = hists2d.assign(run = run2d)
-hists2d = hists2d.assign(avgdata = np.array(nevents2ddata)/np.array(hist2dnbins))
-hists2d = hists2d.assign(avgref = np.array(nevents2dref)/np.array(hist2dnbins))
+hists2d = hists2d.assign(avgdata = np.divide(nevents2ddata, hist2dnbins, out = np.zeros_like(nevents2ddata), where=hist2dnbins!=0))
+hists2d = hists2d.assign(avgref = np.divide(nevents2dref, hist2dnbins, out = np.zeros_like(nevents2ddata), where=hist2dnbins!=0))
 hists2d = hists2d.assign(chi2 = chi22d)
 
 
@@ -271,39 +306,40 @@ import os
 os.makedirs(plotdir, exist_ok=True)
 
 
-maxpull1d_max = 21
-maxpull2d_max = 10.5
-chi21d_max = 42
-chi22d_max = 105
+maxpull1d_max = np.log2(10)#21
+maxpull2d_max = np.log2(10)#10.5
+chi21d_max = np.log2(max(chi21d))#50
+chi22d_max = np.log2(max(chi22d))#100
+binmin = np.log2(2**-10)
 
-ksBins = np.linspace(0,1, ynbins)
-maxpull1dBins = np.linspace(0, maxpull1d_max, ynbins)
-maxpull2dBins = np.linspace(0, maxpull2d_max, ynbins)
-chi21dBins = np.linspace(0, chi21d_max, ynbins)
-chi22dBins = np.linspace(0, chi22d_max, ynbins)
+ksBins = np.logspace(binmin, np.log2(1), 20)
+maxpull1dBins = np.logspace(binmin, maxpull1d_max, ynbins, base=2)
+maxpull2dBins = np.logspace(2**-4, maxpull2d_max, ynbins, base=2)
+chi21dBins = np.logspace(binmin, chi21d_max, ynbins, base=2)
+chi22dBins = np.logspace(binmin, chi22d_max, ynbins, base=2)
 
 #%%
 #------------------------------ ks/pv/chi2 vs nbins ------------------------------
 
-
+#%%
 makePlot(histdf=hists1d, y='ks', x='nbins', ybins=ksBins, xlabel='nbins', 
-         ylabel='ks', title=f'data:{data_run}, ref:{ref_run}',
+         ylabel='ks', title=f'data:{data_run}',
          plotname='ks_nbins')
-
+#%%
 makePlot(histdf=hists1d, y='maxpull', x='nbins', ybins=maxpull1dBins, xlabel='nbins', 
-         ylabel='Max pull (1D)', title=f'data:{data_run}, ref:{ref_run}',
+         ylabel='Max pull (1D)', title=f'data:{data_run}',
          plotname='maxpull-nbins-1d')
 
 makePlot(histdf=hists2d, y='maxpull', x='nbins', ybins=maxpull2dBins, xlabel='nbins', 
-         ylabel='Max pull (2D)', title=f'data:{data_run}, ref:{ref_run}',
+         ylabel='Max pull (2D)', title=f'data:{data_run}',
          plotname='maxpull-nbins-2d')
 
 makePlot(histdf=hists1d, y='chi2', x='nbins', ybins=chi21dBins, xlabel='nbins',
-         ylabel='Chi2 (1D)', title=f'data:{data_run}, ref:{ref_run}',
+         ylabel='Chi2 (1D)', title=f'data:{data_run}',
          plotname='chi2-nbins-1d')
 
 makePlot(histdf=hists2d, y='chi2', x='nbins', ybins=chi22dBins, xlabel='nbins',
-         ylabel='Chi2 (2D)', title=f'data:{data_run}, ref:{ref_run}',
+         ylabel='Chi2 (2D)', title=f'data:{data_run}',
          plotname='chi2-nbins-2d')
 ##----------------------------------------------------------------------------
 #%%
@@ -396,3 +432,9 @@ print(f'maxpull1d: {max(maxpull1d)}, quantile: {np.quantile(maxpull1d, .95)}')
 print(f'chi21d: {max(chi21d)}, quantile: {np.quantile(chi21d, .95)}')
 print(f'maxpull2d: {max(maxpulls)}, quantile: {np.quantile(maxpulls, .95)}')
 print(f'chi22d: {max(chi22d)}, quantile: {np.quantile(chi22d, .95)}')
+
+maxpull1d.sort()
+maxpulls.sort()
+chi21d.sort()
+chi22d.sort()
+nBinsUsed.sort()

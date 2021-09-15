@@ -62,6 +62,7 @@ def process(config_dir, subsystem,
             results.canvas.SaveAs(pdf_path)
 
             hists = list()
+
             for i in results.root_artifacts:
                 if i.InheritsFrom('TH2') or i.InheritsFrom('TH1'):
                     hists.append(i)
