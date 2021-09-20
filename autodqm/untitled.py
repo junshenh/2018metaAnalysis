@@ -169,8 +169,8 @@ run1d = list()
 run2d = list()
 
 nBinsUsed = list()
-pulls = list()
-
+pulls1d = list()
+pulls2d = list()
 
 # if not loadpkl:
 #     results = compare_hists.process(config_dir, subsystem,
@@ -193,19 +193,18 @@ results = compare_hists.process(config_dir, subsystem,
 
 for result in results:
     hists = result['hists']
-
     for hist in hists:
-        histarr, histedge = root_numpy.hist2array(hist, return_edges=True)#, include_overflow=True)
-        if hist.InheritsFrom('TH2'):
-            h2d.append([histarr, histedge])
-            x = getBinCenter(histedge[0])
-            y = getBinCenter(histedge[1])
+        #histarr, histedge = hists# root_numpy.hist2array(hist, return_edges=True)#, include_overflow=True)
+        if len(hist.shape) == 2:#hist.InheritsFrom('TH2'):
+            #h2d.append([histarr, histedge])
+            #x = getBinCenter(histedge[0])
+            #y = getBinCenter(histedge[1])
             histnames2d.append(result['name'])
             run2d.append(f"d{result['id'][40:46]}; r{result['id'][17:23]}")
 
             #------------------ pull values vs nbins ------------------
 
-            hist2dnbins.append(result['info']['nBins'])
+            hist2dnbins.append(hist.shape[0]*hist.shape[1])
             maxpulls.append(result['info']['Max_Pull_Val'])
 
             #-------------------------------------------------------------
@@ -226,24 +225,24 @@ for result in results:
             
             #--------------------------- nbinsUsed ----------------------------
             nBinsUsed.append(result['info']['nBinsUsed'])
-            pulls.append(result['info']['new_pulls'])
+            pulls2d.append(result['info']['new_pulls'])
             #------------------------------------------------------------------
             
 
-        elif hist.InheritsFrom('TH1'):
+        elif len(hist.shape) == 1: #hist.InheritsFrom('TH1'):
             ## have to make this plot both the data and ref
             ## looks like it returns the data first, but autodqm plots it second. this
             ## doesn't really matter, just documenting
             
-            histedge = histedge[0]
-            barval = getBinCenter(histedge)
+            #histedge = histedge[0]
+            #barval = getBinCenter(histedge)
             histnames1d.append(result['name'])
             run1d.append(f"d{result['id'][40:46]}; r{result['id'][17:23]}")
 
 
             #------------------------ ks vs nbins ------------------------
 
-            hist1dnbins.append(result['info']['nBins'])
+            hist1dnbins.append(hist.shape[0])
             kss.append(result['info']['KS_Val'])
 
             #-------------------------------------------------------------
@@ -262,6 +261,9 @@ for result in results:
 
             #----------------------------------------------------------------
 
+            #-----------------------pulls------------------------------------
+            pulls1d.appen(result['info']['pulls'])
+            #----------------------------------------------------------------
 
     
 #------------------------- make pd of info, easy to mannip ------------------

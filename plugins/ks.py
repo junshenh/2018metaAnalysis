@@ -8,7 +8,8 @@ from pullvals import pull
 import root_numpy
 import numpy as np
 from pullvals import pull, maxPullNorm
-
+import scipy
+import scipy.stats
 
 def comparators():
     return {
@@ -18,62 +19,68 @@ def comparators():
 
 def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
 
+
     data_name = histpair.data_name
     ref_name = histpair.ref_name
 
 
     data_hist = histpair.data_hist
-    ref_hist = histpair.ref_hist
-    ref_hists_list = histpair.ref_hists_list
+    #ref_hist = histpair.ref_hist
+    ref_hists_list = [x.values for x in histpair.ref_hists_list]
 
 
-    # Check that the hists are histograms
-    if not data_hist.InheritsFrom('TH1') or not ref_hist.InheritsFrom('TH1'):
-        return None
+    # # Check that the hists are histograms
+    # if not data_hist.InheritsFrom('TH1') or not ref_hist.InheritsFrom('TH1'):
+    #     return None
 
     # Check that the hists are 1 dimensional
-    if data_hist.GetDimension() != 1 or ref_hist.GetDimension() != 1:
+    # if data_hist.GetDimension() != 1 or ref_hist.GetDimension() != 1:
+    #     return None
+    if "1" not in str(type(data_hist)) :
         return None
-    
         
-    data_histD = ROOT.TH1D()
-    data_hist.Copy(data_histD)
-    data_hist = data_histD
-    ref_histD = ROOT.TH1D()
-    ref_hist.Copy(ref_histD)
-    ref_hist = ref_histD
+    # data_histD = ROOT.TH1D()
+    # data_hist.Copy(data_histD)
+    # data_hist = data_histD
+    # ref_histD = ROOT.TH1D()
+    # ref_hist.Copy(ref_histD)
+    # ref_hist = ref_histD
+
+    data_hist_norm = np.copy(data_hist.values)
+    data_hist_Entries = np.sum(data_hist_norm)
+    ref_hist_Entries = np.mean(np.sum(ref_hists_list))
 
     # Normalize data_hist
     #if data_hist.GetEntries() > 0:
         #data_hist.Scale(ref_hist.GetEntries() / data_hist.GetEntries())
     histscale = 1
-    if data_hist.GetEntries() > 0: 
-        data_hist.Scale(histscale/data_hist.GetSumOfWeights())
-    if ref_hist.GetEntries() > 0: 
-        ref_hist.Scale(histscale/ref_hist.GetSumOfWeights())
+    if data_hist_Entries > 0: 
+        data_hist_norm*=histscale/data_hist_norm.sum()
+    # if ref_hist.GetEntries() > 0: 
+    #     ref_hist.Scale(histscale/ref_hist.GetSumOfWeights())
     for i in ref_hists_list:
-        if i.GetEntries() > 0:
-            i.Scale(histscale/i.GetSumOfWeights())
+        if i.sum() > 0:
+            i*=histscale/i.sum()
         
 
+    # calculate the average of all ref_hists_list 
+    ref_hist_arr = np.array(ref_hists_list)
+    ref_hist_norm = np.mean(ref_hist_arr, axis=0)
+    ref_hist_errs = np.std(ref_hist_arr, axis=0)  
+    
+    #Calculate asymmetric error bars 
+    data_hist_errs = np.nan_to_num(abs(np.array(scipy.stats.chi2.interval(0.6827, 2 * data_hist_norm)) / 2 - 1 - data_hist_norm))
+    
     # Reject empty histograms
-    is_good = data_hist.GetEntries() != 0 and data_hist.GetEntries() >= min_entries
+    is_good = data_hist_Entries != 0 # and data_hist.GetEntries() >= min_entries
 
-    ks = data_hist.KolmogorovTest(ref_hist, "M")
+    # ks = data_hist.KolmogorovTest(ref_hist, "M")
+    ks = scipy.stats.kstest(ref_hist_norm, data_hist_norm)[0]
 
     is_outlier = is_good and ks > ks_cut
 
-    canv, artifacts = draw_same(
-        data_hist, histpair.data_run, ref_hist, histpair.ref_run)
-    
-    
-    # calculate the average of all ref_hists_list 
-    avg_ref_hists_list = []
-    for i in ref_hists_list:
-        avg_ref_hists_list.append(root_numpy.hist2array(i))
-    ref_hists_arr = np.array(avg_ref_hists_list)
-    ref_hist = np.mean(ref_hists_arr, axis=0)
-    refErr = np.std(ref_hists_arr, axis=0)  
+    # canv, artifacts = None, # draw_same(
+        #data_hist_norm, histpair.data_run, ref_hist_norm, histpair.ref_run)
     
 
     pull_cap = 25
@@ -82,20 +89,28 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     nBins = 0
     chi2 = 0
     
-    ## caluclate nBinsUsed 
-    data_arr = root_numpy.hist2array(data_hist)
-    #ref_arr = root_numpy.hist2array(ref_hist)
-    nBinsUsed = np.count_nonzero(np.add(ref_hist, data_arr))
+    nBinsUsed = np.count_nonzero(np.add(ref_hist_norm, data_hist_norm))
     
-    for i in range(1, data_hist.GetNbinsX() + 1):
+    ## caluclate nBinsUsed 
+    # data_arr = root_numpy.hist2array(data_hist)
+    #ref_arr = root_numpy.hist2array(ref_hist)
+    
+    pulls = np.zeros_like(ref_hist_norm)
+    #for i in range(1, data_hist.GetNbinsX() + 1):
+    for i in range(0, data_hist_norm.shape[0]):
         # Bin 1 data
-        bin1 = data_hist.GetBinContent(i)
+        bin1 = data_hist_norm[i]
 
         # Bin 2 data
-        bin2 = ref_hist[i-1]#ref_hist.GetBinContent(i)
+        bin2 = ref_hist_norm[i]#ref_hist.GetBinContent(i)
 
-        bin1err = data_hist.GetBinError(i)
-        bin2err = refErr[i-1] # -1 because root indexes from 1 apparently
+        # Getting Proper Poisson error 
+        bin1err, bin2err = data_hist_norm[i]**0.5, ref_hist_errs[i]
+        '''bin1err, bin2err = data_hist_errs[0, i], ref_hist_errs[i]
+        if bin1 < bin2:
+            bin1err, bin2err = data_hist_errs[1, i], ref_hist_errs[i]'''
+        # bin1err = data_hist.GetBinError(i)
+        # bin2err = refrr[i-1] # -1 because root indexes from 1 apparently
         # bin2err = ref_hist.GetBinError(i)
 
         # Count bins for chi2 calculation
@@ -117,13 +132,17 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
 
 
         # Clamp the displayed value
-        fill_val = max(min(new_pull, pull_cap), -pull_cap)
-
+        # fill_val = max(min(new_pull, pull_cap), -pull_cap)
+        fill_val = max_pull
+    
         # If the input bins were explicitly empty, make this bin white by
         # setting it out of range
         ## why is this done????
         if bin1 == bin2 == 0:
             fill_val = -999
+        
+        pulls[i] = fill_val
+        
     # Compute chi2
     if nBinsUsed > 0:
         chi2 = (chi2 / nBinsUsed)
@@ -132,14 +151,20 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
         chi2=0
         max_pull = 0 
 
+    
+    pulls = maxPullNorm(pulls, nBinsUsed)
+    
+    canv = None
+    artifacts = [pulls]
 
     info = {
-        'Data_Entries': data_hist.GetEntries(),
-        'Ref_Entries': ref_hist.sum(),
+        'Data_Entries': data_hist_Entries,
+        'Ref_Entries': ref_hist_Entries,
         'KS_Val': ks,
         'Chi_Squared' : chi2,
         'Max_Pull_Val': max_pull,
-        'nBins' : nBins
+        'nBins' : nBins,
+        'pulls' : pulls
     }
 
     return PluginResults(
