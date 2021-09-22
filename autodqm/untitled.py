@@ -262,7 +262,7 @@ for result in results:
             #----------------------------------------------------------------
 
             #-----------------------pulls------------------------------------
-            pulls1d.appen(result['info']['pulls'])
+            pulls1d.append(result['info']['pulls'])
             #----------------------------------------------------------------
 
     
@@ -429,6 +429,18 @@ makePlot(histdf=hists2d, y='chi2', x='avgdata', ybins=chi22dBins,
 #          xlabel='average events per bin (ref)', ylabel='Chi2 (2D)', 
 #          title=f'ref:{ref_run}', plotname='ref_chi2-avg-2d')
 
+#%%
+for i,x in enumerate(histnames2d):
+    l = ['cscLCTTimingFracBX0', 'cscChamberWireMENeg12', 
+         'cscChamberStripMEPos12', 'cscChamberStripMENeg32', 
+         'emtfTrackOccupancy']
+    # check if anything in l is in histname2d
+    if any(substring in x for substring in l):
+        print(pulls2d[i].shape)
+        #fig, ax = plt.subplots()
+        
+        #fig.close()
+        
 #%%
 print(f'maxpull1d: {max(maxpull1d)}, quantile: {np.quantile(maxpull1d, .95)}')
 print(f'chi21d: {max(chi21d)}, quantile: {np.quantile(chi21d, .95)}')

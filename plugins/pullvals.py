@@ -88,7 +88,7 @@ def pullvals(histpair,
     # calculate the average of all ref_hists_list 
     ref_hist_arr = np.array(ref_hists_list_norm)
     ref_hist_norm = np.mean(ref_hist_arr, axis=0)
-    ref_hist_norm*=histscale/ref_hist_norm.sum()
+    if ref_hist_norm.sum() > 0: ref_hist_norm*=histscale/ref_hist_norm.sum()
     ref_hist_errs = np.std(ref_hist_arr, axis=0)    
 
 
