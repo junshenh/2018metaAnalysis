@@ -203,11 +203,12 @@ def pullvals(histpair,
     info = {
         'Chi_Squared': chi2,
         'Max_Pull_Val': max_pull,
-        'Data_Entries': data_hist_Entries,
-        'Ref_Entries': ref_hist_Entries,
+        'Data_Entries': data_hist_norm, #data_hist_Entries,
+        'Ref_Entries': ref_hist_norm, #ref_hist_Entries,
         'nBinsUsed' : nBinsUsed,
         'nBins' : nBins,
         'new_pulls' : pulls # .reshape(refErr)
+        
     }
 
     artifacts = [pulls, 'data_text', 'ref_text']

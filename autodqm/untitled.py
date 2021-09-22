@@ -303,6 +303,11 @@ hists2d = hists2d.assign(avgref = np.divide(nevents2dref, hist2dnbins, out = np.
 hists2d = hists2d.assign(chi2 = chi22d)
 
 
+pickle.dump(hists1d, open('pickles/hists1d-uproot.pkl','wb'))
+pickle.dump(hists2d, open('pickles/hists2d-uproot.pkl','wb'))
+aa1dup = pickle.load(open('pickles/hists1d-uproot.pkl','rb'))
+aa2dup = pickle.load(open('pickles/hists2d-uproot.pkl', 'rb'))
+
 import os
 
 os.makedirs(plotdir, exist_ok=True)
