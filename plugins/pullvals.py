@@ -86,7 +86,7 @@ def pullvals(histpair,
     nBinsUsed = np.count_nonzero(np.add(ref_hist, data_arr))
     
     
-    pulls = list()
+    pulls = np.zeros_like(refErr)
     
     ## loop through bins to calculate max pull
     for x in range(1, data_hist.GetNbinsX() + 1):
@@ -100,7 +100,7 @@ def pullvals(histpair,
 
             
             if not (bin1 + bin2 > 0):
-                pulls.append(0)
+                pulls[x-1,y-1] = 0
                 continue
             
             # TEMPERARY - Getting Symmetric Error - Need to update with >Proper Poisson error 
@@ -121,7 +121,7 @@ def pullvals(histpair,
             else:
                 new_pull = pull(bin1, bin1err, bin2, bin2err)
                     
-            pulls.append(new_pull)
+            pulls[x-1,y-1] = new_pull
             # Sum pulls
             chi2 += new_pull**2
 
@@ -177,7 +177,7 @@ def pullvals(histpair,
         'Ref_Entries': ref_hist.sum(),
         'nBinsUsed' : nBinsUsed,
         'nBins' : nBins,
-        'new_pulls' : np.array(pulls).reshape(refErr)
+        'new_pulls' : pulls
     }
 
     artifacts = [pull_hist, data_text, ref_text]
