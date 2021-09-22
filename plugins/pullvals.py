@@ -173,8 +173,8 @@ def pullvals(histpair,
     info = {
         'Chi_Squared': chi2,
         'Max_Pull_Val': max_pull,
-        'Data_Entries': data_hist.GetEntries(),
-        'Ref_Entries': ref_hist.sum(),
+        'Data_Entries': root_numpy.hist2array(data_hist), #data_hist.GetEntries(),
+        'Ref_Entries': ref_hist, #ref_hist.sum(),
         'nBinsUsed' : nBinsUsed,
         'nBins' : nBins,
         'new_pulls' : pulls
