@@ -24,36 +24,13 @@ def pullvals(histpair,
     # ref_hist = histpair.ref_hist
     ref_hists_list = histpair.ref_hists_list
     
-    # data_histD = ROOT.TH2D()
-    # data_hist.Copy(data_histD)
-    # data_hist = data_histD
-    # ref_histD = ROOT.TH2D()
-    # ref_hist.Copy(ref_histD)
-    # ref_hist = ref_histD
-
-    # Check that the hists are histograms
-    # if not data_hist.InheritsFrom('TH1') or not ref_hist.InheritsFrom('TH1'):
-    #     return None
-
-    # Check that the hists are 2 dimensional
-    # if data_hist.GetDimension() != 2 or ref_hist.GetDimension() != 2:
-    #     return None
     if not "2" in str(type(data_hist)): #or not "2" in str(type(ref_hist)):
         return None
     for i in ref_hists_list:
         if i.values.sum() == 0:
             return None
 
-    # ROOT.gStyle.SetOptStat(0)
-    # ROOT.gStyle.SetPalette(ROOT.kLightTemperature)
-    # ROOT.gStyle.SetNumberContours(255)
 
-    # Get empty clone of reference histogram for pull hist
-    # if data_hist.InheritsFrom('TProfile2D'):
-    #     pull_hist = ref_hist.ProjectionXY("pull_hist")
-    # else:
-    #     pull_hist = ref_hist.Clone("pull_hist")
-    # pull_hist.Reset()
     data_hist_norm = np.copy(data_hist.values)
     #ref_hist_norm = np .copy(ref_hist.values())
     ref_hists_list_norm = [np.copy(x.values) for x in ref_hists_list]
@@ -63,27 +40,15 @@ def pullvals(histpair,
 
     data_hist_Entries = np.sum(data_hist_norm)
     ref_hist_Entries = np.mean(np.sum(ref_hists_list))
-    #ref_hist_Entries = np.sum(ref_hist_norm)
 
     # Reject empty histograms
     is_good = data_hist_Entries != 0 # and data_hist.GetEntries() >= min_entries
-
-    # Normalize data_hist
-    # if norm_type == "row":
-    #     normalize_rows(data_hist, ref_hist)
-    # else:
-    #     if data_hist.GetEntries() > 0:
-    #         data_hist.Scale(ref_hist.GetSumOfWeights() / data_hist.GetSumOfWeights())
  
     ## normalize all data to integrate to 1
-    histscale = 1#ref_hist.GetSumOfWeights()#1
+    histscale = 1
     if data_hist_Entries > 0: 
         data_hist_norm*=histscale/data_hist_norm.sum()
-    # if ref_hist.GetEntries() > 0: 
-    #     ref_hist.Scale(histscale/ref_hist.GetSumOfWeights())
-    # for i in ref_hists_list_norm:
-    #     if i.sum() > 0:
-    #         i*=histscale/i.sum()
+
             
     #Calculate asymmetric error bars 
     #data_hist_errs = np.nan_to_num(abs(np.array(scipy.stats.chi2.interval(0.6827, 2 * data_hist_norm)) / 2 - 1 - data_hist_norm))
@@ -102,18 +67,9 @@ def pullvals(histpair,
     ## only fuilled bins used for calculating chi2
     nBinsUsed = np.count_nonzero(np.add(ref_hist_norm, data_hist_norm)) 
     
-    ## caluclate nBinsUsed 
-    # data_arr = root_numpy.hist2array(data_hist)
-    #ref_arr = root_numpy.hist2array(ref_hist)
-    
-    
-    
     # pulls = list()
     pulls = np.zeros_like(ref_hist_norm)
     
-    ## loop through bins to calculate max pull
-    # for x in range(1, data_hist.GetNbinsX() + 1):
-    #     for y in range(1, data_hist.GetNbinsY() + 1):
     for x in range(0, data_hist_norm.shape[0]):
         for y in range(0, data_hist_norm.shape[1]):
 
@@ -123,23 +79,9 @@ def pullvals(histpair,
             # Bin 2 data
             bin2 = ref_hist_norm[x,y]#ref_hist.GetBinContent(x, y)
 
-            # if not (bin1 + bin2 > 0):
-            #     pulls.append(0)
-            #     continue
-            
-            # TEMPERARY - Getting Symmetric Error - Need to update with >Proper Poisson error 
-            # if data_hist.InheritsFrom('TProfile2D'):
-            #     bin1err = data_hist.GetBinError(x, y)
-            #     # bin2err = ref_hist.GetBinError(x, y)
-            #     bin2err = ref_hist_errs[x-1,y-1] # -1 because root index from 1 apparently
-            # else:
-            #     # bin1err, bin2err = bin1**(.5), bin2**(.5)
-            #     bin1err, bin2err = bin1**(.5), ref_hist_errs[x-1, y-1]
-            # # Count bins for chi2 calculation
-            # nBins += 1 
             
             ## Getting Proper Poisson error 
-            bin1err, bin2err = data_hist_norm[x,y]**0.5, ref_hist_errs[x,y]
+            bin1err, bin2err = data_hist_errs[x,y], ref_hist_errs[x,y]
             '''bin1err, bin2err = data_hist_errs[0, x, y], ref_hist_errs[x, y]
             if bin1 < bin2:
                 bin1err, bin2err = data_hist_errs[1, x, y], ref_hist_errs[x, y]'''
@@ -159,7 +101,6 @@ def pullvals(histpair,
             max_pull = max(max_pull, abs(new_pull))
 
             # Clamp the displayed value
-            # fill_val = max(min(new_pull, pull_cap), -pull_cap)
             fill_val = max_pull
 
             # If the input bins were explicitly empty, make this bin white by
@@ -168,16 +109,14 @@ def pullvals(histpair,
                 fill_val = -999
 
             # Fill Pull Histogram
-            # pull_hist.SetBinContent(x, y, fill_val)
             pulls[x,y] = fill_val
-
-    ## 'normalize' all the pulls before passing it back for plotting
-    pulls = maxPullNorm(pulls, nBinsUsed)
+    
 
     ## make normed chi2 and maxpull
     if nBinsUsed > 0:
         chi2 = chi2/nBinsUsed  
         max_pull = maxPullNorm(max_pull, nBinsUsed)
+        pulls = maxPullNorm(pulls, nBinsUsed)
     else:
         chi2 = 0
         max_pull = 0
@@ -188,27 +127,11 @@ def pullvals(histpair,
     # Set up canvas
     c = ROOT.TCanvas('c', 'Pull')
 
-    # Plot pull hist
-    # pull_hist.GetZaxis().SetRangeUser(-(pull_cap), pull_cap)
-    # pull_hist.SetTitle(pull_hist.GetTitle() + " Pull Values")
-    # pull_hist.Draw("colz")
-
-    # Text box
-    # data_text = ROOT.TLatex(.52, .91,
-    #                         "#scale[0.6]{Data: " + str(histpair.data_run) + "}")
-    # ref_text = ROOT.TLatex(.72, .91,
-    #                        "#scale[0.6]{Ref: " + str(histpair.ref_run) + "}")
-    # data_text.SetNDC(ROOT.kTRUE)
-    # ref_text.SetNDC(ROOT.kTRUE)
-    # data_text.Draw()
-    # ref_text.Draw()
-
-
     info = {
         'Chi_Squared': chi2,
         'Max_Pull_Val': max_pull,
-        'Data_Entries': data_hist_norm, #data_hist_Entries,
-        'Ref_Entries': ref_hist_norm, #ref_hist_Entries,
+        'Data_Entries': data_hist_Entries,
+        'Ref_Entries': ref_hist_Entries,
         'nBinsUsed' : nBinsUsed,
         'nBins' : nBins,
         'new_pulls' : pulls # .reshape(refErr)

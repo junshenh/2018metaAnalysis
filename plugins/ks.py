@@ -25,49 +25,29 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
 
 
     data_hist = histpair.data_hist
-    #ref_hist = histpair.ref_hist
     ref_hists_list = [x.values for x in histpair.ref_hists_list]
 
-
-    # # Check that the hists are histograms
-    # if not data_hist.InheritsFrom('TH1') or not ref_hist.InheritsFrom('TH1'):
-    #     return None
-
-    # Check that the hists are 1 dimensional
-    # if data_hist.GetDimension() != 1 or ref_hist.GetDimension() != 1:
-    #     return None
+    # check for 1d hists and that refs are not empty
     if "1" not in str(type(data_hist)) :
         return None
     for i in ref_hists_list:
         if i.sum() == 0:
             return None
-        
-    # data_histD = ROOT.TH1D()
-    # data_hist.Copy(data_histD)
-    # data_hist = data_histD
-    # ref_histD = ROOT.TH1D()
-    # ref_hist.Copy(ref_histD)
-    # ref_hist = ref_histD
+    if data_hist.values.sum() == 0: 
+        return None
+
 
     data_hist_norm = np.copy(data_hist.values)
     data_hist_Entries = np.sum(data_hist_norm)
     ref_hist_Entries = np.mean(np.sum(ref_hists_list))
 
-    # Normalize data_hist
-    #if data_hist.GetEntries() > 0:
-        #data_hist.Scale(ref_hist.GetEntries() / data_hist.GetEntries())
+    # normalize data hist
     histscale = 1
     datascale = histscale/data_hist_norm.sum()
     if data_hist_Entries > 0: 
         data_hist_norm*=datascale
-    # if ref_hist.GetEntries() > 0: 
-    #     ref_hist.Scale(histscale/ref_hist.GetSumOfWeights())
-    # for i in ref_hists_list:
-    #     if i.sum() > 0:
-    #         i*=histscale/i.sum()
-        
 
-    # calculate the average of all ref_hists_list 
+    # calculate the average of all ref_hists_list then normalize then error
     ref_hist_arr = np.array(ref_hists_list)
     ref_hist_norm = np.mean(ref_hist_arr, axis=0)
     refscale = histscale/ref_hist_norm.sum()
@@ -77,13 +57,12 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     #Calculate asymmetric error bars 
     #data_hist_errs = np.nan_to_num(abs(np.array(scipy.stats.chi2.interval(0.6827, 2 * data_hist_norm)) / 2 - 1 - data_hist_norm))
     data_hist_errs = np.square(data_hist_norm * datascale)
-    
-    # Reject empty histograms
-    is_good = data_hist_Entries != 0 # and data_hist.GetEntries() >= min_entries
+
 
     # ks = data_hist.KolmogorovTest(ref_hist, "M")
     ks = scipy.stats.kstest(ref_hist_norm, data_hist_norm)[0]
 
+    is_good = data_hist_Entries > 0
     is_outlier = is_good and ks > ks_cut
 
     # canv, artifacts = None, # draw_same(
@@ -98,10 +77,6 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     
     nBinsUsed = np.count_nonzero(np.add(ref_hist_norm, data_hist_norm))
     
-    ## caluclate nBinsUsed 
-    # data_arr = root_numpy.hist2array(data_hist)
-    #ref_arr = root_numpy.hist2array(ref_hist)
-    
     pulls = np.zeros_like(ref_hist_norm)
     #for i in range(1, data_hist.GetNbinsX() + 1):
     for i in range(0, data_hist_norm.shape[0]):
@@ -112,13 +87,10 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
         bin2 = ref_hist_norm[i]#ref_hist.GetBinContent(i)
 
         # Getting Proper Poisson error 
-        bin1err, bin2err = data_hist_norm[i]**0.5, ref_hist_errs[i]
+        bin1err, bin2err = data_hist_errs[i], ref_hist_errs[i]
         '''bin1err, bin2err = data_hist_errs[0, i], ref_hist_errs[i]
         if bin1 < bin2:
             bin1err, bin2err = data_hist_errs[1, i], ref_hist_errs[i]'''
-        # bin1err = data_hist.GetBinError(i)
-        # bin2err = refrr[i-1] # -1 because root indexes from 1 apparently
-        # bin2err = ref_hist.GetBinError(i)
 
         # Count bins for chi2 calculation
         nBins += 1

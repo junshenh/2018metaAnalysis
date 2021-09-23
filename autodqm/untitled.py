@@ -84,7 +84,7 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
     '''
     if y =='ks':
         fig, ax = plt.subplots()
-        # xbins = np.linspace(0, max(histdf[x]), xnbins)
+        xbins = np.linspace(0, max(histdf[x]), xnbins)
         if 'nevents' in x:
             xmin, xmax = np.log2(1), np.log2(max(histdf[x]))
         elif 'nbins' in x: 
@@ -96,10 +96,10 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         logybins = ybins#np.logspace(ymin, ymax, xnbins, base=2)
         
         counts, _, _ = np.histogram2d(histdf[x], histdf[y], bins=(logxbins, logybins))
-        # ax.hist2d(histdf[x], histdf[y], norm=mpl.colors.LogNorm(), bins=(xbins,ybins))
-        ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm())
-        ax.set_xscale('log', base=2)
-        ax.set_yscale('log', base=2)
+        ax.hist2d(histdf[x], histdf[y], norm=mpl.colors.LogNorm(), bins=(xbins,ybins))
+        #ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm())
+        #ax.set_xscale('log', base=2)
+        #ax.set_yscale('log', base=2)
 
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
@@ -112,7 +112,7 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         plt.close(fig)
     else: 
         fig, ax = plt.subplots()
-        #xbins = np.linspace(0, max(histdf[x]), xnbins)
+        xbins = np.linspace(0, max(histdf[x]), xnbins)
         if 'nevents' in x:
             xmin, xmax = np.log2(1), np.log2(max(histdf[x]))
         elif 'nbins' in x: 
@@ -123,19 +123,19 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         logxbins = np.logspace(xmin, xmax, xnbins, base=2)
         logybins = ybins#np.logspace(ymin, ymax, xnbins, base=2)
         maxval = ybins[-2]
-        # ytoplot = np.clip(histdf[y], a_min=0, a_max=maxval)
+        ytoplot = np.clip(histdf[y], a_min=0, a_max=maxval)
         
         counts, _, _ = np.histogram2d(histdf[x], histdf[y], bins=(logxbins, logybins))
         
-        ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm())
-        ax.set_xscale('log', base=2)
-        ax.set_yscale('log', base=2)
+        # ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm())
+        # ax.set_xscale('log', base=2)
+        # ax.set_yscale('log', base=2)
         
         #ybinlabels = ybins.astype(str)[::2]
         #ybinlabels[-1] += '+'
         # maxval = ybins[-2]
         # ytoplot = np.clip(histdf[y], a_min=0, a_max=maxval)
-        #ax.hist2d(histdf[x], ytoplot, norm=mpl.colors.LogNorm(), bins=[xbins, ybins])
+        ax.hist2d(histdf[x], ytoplot, norm=mpl.colors.LogNorm(), bins=[xbins, ybins])
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         ax.set_title(title)
