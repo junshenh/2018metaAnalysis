@@ -72,9 +72,9 @@ def pullvals(histpair,
         avg_ref_hists_list.append(root_numpy.hist2array(i))
     ref_hists_arr = np.array(avg_ref_hists_list)
     ref_hist = np.mean(ref_hists_arr, axis=0)
-    ref_hist = ref_hist*1/ref_hist.sum()
-    refErr = np.std(ref_hists_arr, axis=0)    
-
+    ref_hist_scale = 1/ref_hist.sum()
+    ref_hist = ref_hist*ref_hist_scale
+    refErr = np.std(ref_hists_arr, axis=0)*np.sqrt(ref_hist_scale)    
 
     max_pull = 0
     nBins = 0
@@ -104,13 +104,15 @@ def pullvals(histpair,
                 continue
             
             # TEMPERARY - Getting Symmetric Error - Need to update with >Proper Poisson error 
-            if data_hist.InheritsFrom('TProfile2D'):
-                bin1err = data_hist.GetBinError(x, y)
-                # bin2err = ref_hist.GetBinError(x, y)
-                bin2err = refErr[x-1,y-1] # -1 because root index from 1 apparently
-            else:
-                # bin1err, bin2err = bin1**(.5), bin2**(.5)
-                bin1err, bin2err = bin1**(.5), refErr[x-1, y-1]
+            bin1err = data_hist.GetBinError(x,y)
+            bin2err = refErr[x-1,y-1]
+            # if data_hist.InheritsFrom('TProfile2D'):
+            #     bin1err = data_hist.GetBinError(x, y)
+            #     # bin2err = ref_hist.GetBinError(x, y)
+            #     bin2err = refErr[x-1,y-1] # -1 because root index from 1 apparently
+            # else:
+            #     # bin1err, bin2err = bin1**(.5), bin2**(.5)
+            #     bin1err, bin2err = data_hist.GetBinError(x, y), refErr[x-1, y-1]
             # Count bins for chi2 calculation
             nBins += 1 
 
@@ -173,8 +175,8 @@ def pullvals(histpair,
     info = {
         'Chi_Squared': chi2,
         'Max_Pull_Val': max_pull,
-        'Data_Entries': root_numpy.hist2array(data_hist), #data_hist.GetEntries(),
-        'Ref_Entries': ref_hist, #ref_hist.sum(),
+        'Data_Entries': data_hist.GetEntries(),
+        'Ref_Entries': ref_hist.sum(),
         'nBinsUsed' : nBinsUsed,
         'nBins' : nBins,
         'new_pulls' : pulls

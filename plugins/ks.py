@@ -51,9 +51,9 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
         data_hist.Scale(histscale/data_hist.GetSumOfWeights())
     if ref_hist.GetEntries() > 0: 
         ref_hist.Scale(histscale/ref_hist.GetSumOfWeights())
-    for i in ref_hists_list:
-        if i.GetEntries() > 0:
-            i.Scale(histscale/i.GetSumOfWeights())
+    # for i in ref_hists_list:
+    #     if i.GetEntries() > 0:
+    #         i.Scale(histscale/i.GetSumOfWeights())
         
 
     # Reject empty histograms
@@ -73,7 +73,9 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
         avg_ref_hists_list.append(root_numpy.hist2array(i))
     ref_hists_arr = np.array(avg_ref_hists_list)
     ref_hist = np.mean(ref_hists_arr, axis=0)
-    refErr = np.std(ref_hists_arr, axis=0)  
+    ref_hist_scale = 1/ref_hist.sum()
+    ref_hist*=ref_hist_scale
+    refErr = np.std(ref_hists_arr, axis=0)*np.sqrt(ref_hist_scale)
     
 
     pull_cap = 25
@@ -86,6 +88,7 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     data_arr = root_numpy.hist2array(data_hist)
     #ref_arr = root_numpy.hist2array(ref_hist)
     nBinsUsed = np.count_nonzero(np.add(ref_hist, data_arr))
+    pulls = np.zeros_like(data_arr)
     
     for i in range(1, data_hist.GetNbinsX() + 1):
         # Bin 1 data
@@ -94,7 +97,7 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
         # Bin 2 data
         bin2 = ref_hist[i-1]#ref_hist.GetBinContent(i)
 
-        bin1err = data_hist.GetBinError(i)
+        bin1err = bin1**0.5# data_hist.GetBinError(i)
         bin2err = refErr[i-1] # -1 because root indexes from 1 apparently
         # bin2err = ref_hist.GetBinError(i)
 
@@ -110,6 +113,8 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
 
         # Sum pulls
         chi2 += new_pull**2
+        
+        pulls[i-1] = new_pull
 
         # Check if max_pull
         max_pull = max(max_pull, abs(new_pull))
@@ -119,6 +124,7 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
         # Clamp the displayed value
         fill_val = max(min(new_pull, pull_cap), -pull_cap)
 
+        
         # If the input bins were explicitly empty, make this bin white by
         # setting it out of range
         ## why is this done????
@@ -139,7 +145,8 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
         'KS_Val': ks,
         'Chi_Squared' : chi2,
         'Max_Pull_Val': max_pull,
-        'nBins' : nBins
+        'nBins' : nBins,
+        'new_pulls' : pulls
     }
 
     return PluginResults(

@@ -22,6 +22,8 @@ import pandas as pd
 
 
 
+
+
 plt.tight_layout()
 'https://cmsweb.cern.ch/dqm/offline/data/browse/ROOT/OnlineData/original/00032xxxx/0003200xx/'
 basedatadir = 'rootfiles/data/'
@@ -29,7 +31,7 @@ baserefdir = 'rootfiles/ref/'
 datadirs = [basedatadir + i for i in os.listdir(basedatadir)]
 refdirs = [baserefdir + i for i in os.listdir(baserefdir)]
 #datadirs = [baserefdir + i for i in os.listdir(baserefdir)]
-data_path = 'rootfiles/ref/DQM_V0001_L1T_R000320002.root'
+data_path = 'rootfiles/data/DQM_V0001_L1T_R000320008.root'
 ref_path = 'rootfiles/ref/DQM_V0001_L1T_R000320006.root'
 config_dir = '../config'
 subsystem = 'EMTF'
@@ -96,7 +98,9 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         logybins = ybins#np.logspace(ymin, ymax, xnbins, base=2)
         
         counts, _, _ = np.histogram2d(histdf[x], histdf[y], bins=(logxbins, logybins))
-        # ax.hist2d(histdf[x], histdf[y], norm=mpl.colors.LogNorm(), bins=(xbins,ybins))
+        
+        #ax.hist2d(histdf[x], histdf[y], norm=mpl.colors.LogNorm())#, bins=(xbins,ybins))
+        
         ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm())
         ax.set_xscale('log', base=2)
         ax.set_yscale('log', base=2)
@@ -122,10 +126,12 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         #ymin, ymax = np.log2(2**-10), np.log2(max(histdf[y]))
         logxbins = np.logspace(xmin, xmax, xnbins, base=2)
         logybins = ybins#np.logspace(ymin, ymax, xnbins, base=2)
-        maxval = ybins[-2]
+        #maxval = ybins[-2]
         # ytoplot = np.clip(histdf[y], a_min=0, a_max=maxval)
+    
         
         counts, _, _ = np.histogram2d(histdf[x], histdf[y], bins=(logxbins, logybins))
+        
         
         ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm())
         ax.set_xscale('log', base=2)
@@ -135,7 +141,7 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         #ybinlabels[-1] += '+'
         # maxval = ybins[-2]
         # ytoplot = np.clip(histdf[y], a_min=0, a_max=maxval)
-        #ax.hist2d(histdf[x], ytoplot, norm=mpl.colors.LogNorm(), bins=[xbins, ybins])
+        # ax.hist2d(histdf[x], histdf[y], norm=mpl.colors.LogNorm())#, bins=[xbins, ybins])
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         ax.set_title(title)
@@ -146,7 +152,7 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         plt.savefig(f'{plotdir}/{plotname}.png', bbox_inches='tight')
         plt.show()
         plt.close(fig)
-    #%%
+#%%
 
 h1d = list()
 h2d = list()
@@ -169,7 +175,8 @@ run1d = list()
 run2d = list()
 
 nBinsUsed = list()
-pulls = list()
+pulls1d = list()
+pulls2d = list()
 
 
 # if not loadpkl:
@@ -226,7 +233,7 @@ for result in results:
             
             #--------------------------- nbinsUsed ----------------------------
             nBinsUsed.append(result['info']['nBinsUsed'])
-            pulls.append(result['info']['new_pulls'])
+            pulls2d.append(result['info']['new_pulls'])
             #------------------------------------------------------------------
             
 
@@ -262,6 +269,9 @@ for result in results:
 
             #----------------------------------------------------------------
 
+            #-----------------------------------------------------------------
+            pulls1d.append(result['info']['new_pulls'])
+            #-----------------------------------------------------------------
 
     
 #------------------------- make pd of info, easy to mannip ------------------
@@ -306,7 +316,7 @@ pickle.dump(hists2d, open('pickles/hists2d-pyroot.pkl','wb'))
 aa1dpy = pickle.load(open('pickles/hists1d-pyroot.pkl','rb'))
 aa2dpy = pickle.load(open('pickles/hists2d-pyroot.pkl', 'rb'))
 
-raise(ValueError)
+
 
 import os
 os.makedirs(plotdir, exist_ok=True)
@@ -316,39 +326,55 @@ maxpull1d_max = np.log2(10)#21
 maxpull2d_max = np.log2(10)#10.5
 chi21d_max = np.log2(max(chi21d))#50
 chi22d_max = np.log2(max(chi22d))#100
-binmin = np.log2(2**-10)
+binmin = np.log2(2**-20)
 
 ksBins = np.logspace(binmin, np.log2(1), 20)
-maxpull1dBins = np.logspace(binmin, maxpull1d_max, ynbins, base=2)
-maxpull2dBins = np.logspace(2**-4, maxpull2d_max, ynbins, base=2)
+maxpull1dBins = np.logspace(np.log2(2**-25), maxpull1d_max, ynbins, base=2)
+maxpull2dBins = np.logspace(binmin, maxpull2d_max, ynbins, base=2)
 chi21dBins = np.logspace(binmin, chi21d_max, ynbins, base=2)
 chi22dBins = np.logspace(binmin, chi22d_max, ynbins, base=2)
+
+
+
+
+for i in pulls1d:
+    fig, ax = plt.subplots()
+    ax.bar(range(len(i)), i)
+
+for i in pulls2d:
+    fig, ax = plt.subplots()
+    im = ax.pcolormesh(i, cmap='inferno')#, norm=mpl.colors.LogNorm())
+    fig.colorbar(im , ax=ax)
+
+
 
 #%%
 #------------------------------ ks/pv/chi2 vs nbins ------------------------------
 
-#%%
+
 makePlot(histdf=hists1d, y='ks', x='nbins', ybins=ksBins, xlabel='nbins', 
          ylabel='ks', title=f'data:{data_run}',
          plotname='ks_nbins')
-#%%
+
 makePlot(histdf=hists1d, y='maxpull', x='nbins', ybins=maxpull1dBins, xlabel='nbins', 
          ylabel='Max pull (1D)', title=f'data:{data_run}',
          plotname='maxpull-nbins-1d')
 
+
 makePlot(histdf=hists2d, y='maxpull', x='nbins', ybins=maxpull2dBins, xlabel='nbins', 
          ylabel='Max pull (2D)', title=f'data:{data_run}',
          plotname='maxpull-nbins-2d')
-
+#%%
 makePlot(histdf=hists1d, y='chi2', x='nbins', ybins=chi21dBins, xlabel='nbins',
          ylabel='Chi2 (1D)', title=f'data:{data_run}',
          plotname='chi2-nbins-1d')
+#%%
 
 makePlot(histdf=hists2d, y='chi2', x='nbins', ybins=chi22dBins, xlabel='nbins',
          ylabel='Chi2 (2D)', title=f'data:{data_run}',
          plotname='chi2-nbins-2d')
 ##----------------------------------------------------------------------------
-#%%
+
 #------------------------------ ks/pv vs nevents ------------------------------
 makePlot(histdf=hists1d, y='ks', x='neventsdata', ybins=ksBins, xlabel='# of events (data)', 
          ylabel='ks', title=f'data:{data_run}', plotname='data_ks-nevents')
