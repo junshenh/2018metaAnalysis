@@ -40,6 +40,9 @@ def pullvals(histpair,
     #     return None
     if not "2" in str(type(data_hist)): #or not "2" in str(type(ref_hist)):
         return None
+    for i in ref_hists_list:
+        if i.values.sum() == 0:
+            return None
 
     # ROOT.gStyle.SetOptStat(0)
     # ROOT.gStyle.SetPalette(ROOT.kLightTemperature)
@@ -78,13 +81,14 @@ def pullvals(histpair,
         data_hist_norm*=histscale/data_hist_norm.sum()
     # if ref_hist.GetEntries() > 0: 
     #     ref_hist.Scale(histscale/ref_hist.GetSumOfWeights())
-    for i in ref_hists_list_norm:
-        if i.sum() > 0:
-            i*=histscale/i.sum()
+    # for i in ref_hists_list_norm:
+    #     if i.sum() > 0:
+    #         i*=histscale/i.sum()
             
     #Calculate asymmetric error bars 
-    data_hist_errs = np.nan_to_num(abs(np.array(scipy.stats.chi2.interval(0.6827, 2 * data_hist_norm)) / 2 - 1 - data_hist_norm))
-            
+    #data_hist_errs = np.nan_to_num(abs(np.array(scipy.stats.chi2.interval(0.6827, 2 * data_hist_norm)) / 2 - 1 - data_hist_norm))
+    data_hist_errs = np.sqrt(data_hist_norm*histscale/data_hist_norm.sum())    
+        
     # calculate the average of all ref_hists_list 
     ref_hist_arr = np.array(ref_hists_list_norm)
     ref_hist_norm = np.mean(ref_hist_arr, axis=0)

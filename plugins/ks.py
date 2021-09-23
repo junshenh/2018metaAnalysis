@@ -38,6 +38,9 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     #     return None
     if "1" not in str(type(data_hist)) :
         return None
+    for i in ref_hists_list:
+        if i.sum() == 0:
+            return None
         
     # data_histD = ROOT.TH1D()
     # data_hist.Copy(data_histD)
@@ -54,23 +57,26 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     #if data_hist.GetEntries() > 0:
         #data_hist.Scale(ref_hist.GetEntries() / data_hist.GetEntries())
     histscale = 1
+    datascale = histscale/data_hist_norm.sum()
     if data_hist_Entries > 0: 
-        data_hist_norm*=histscale/data_hist_norm.sum()
+        data_hist_norm*=datascale
     # if ref_hist.GetEntries() > 0: 
     #     ref_hist.Scale(histscale/ref_hist.GetSumOfWeights())
-    for i in ref_hists_list:
-        if i.sum() > 0:
-            i*=histscale/i.sum()
+    # for i in ref_hists_list:
+    #     if i.sum() > 0:
+    #         i*=histscale/i.sum()
         
 
     # calculate the average of all ref_hists_list 
     ref_hist_arr = np.array(ref_hists_list)
     ref_hist_norm = np.mean(ref_hist_arr, axis=0)
-    if ref_hist_norm.sum() > 0: ref_hist_norm*=histscale/ref_hist_norm.sum()
+    refscale = histscale/ref_hist_norm.sum()
+    ref_hist_norm*=refscale
     ref_hist_errs = np.std(ref_hist_arr, axis=0)  
     
     #Calculate asymmetric error bars 
-    data_hist_errs = np.nan_to_num(abs(np.array(scipy.stats.chi2.interval(0.6827, 2 * data_hist_norm)) / 2 - 1 - data_hist_norm))
+    #data_hist_errs = np.nan_to_num(abs(np.array(scipy.stats.chi2.interval(0.6827, 2 * data_hist_norm)) / 2 - 1 - data_hist_norm))
+    data_hist_errs = np.square(data_hist_norm * datascale)
     
     # Reject empty histograms
     is_good = data_hist_Entries != 0 # and data_hist.GetEntries() >= min_entries
