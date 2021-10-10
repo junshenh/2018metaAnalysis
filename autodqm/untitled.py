@@ -6,9 +6,9 @@ Created on Sun Jan  3 23:41:47 2021
 @author: si_sutantawibul1
 """
 import sys
-sys.path.insert(1, '/home/chosila/Projects/AutoDQM-p3/autodqm')
+sys.path.insert(1, '/home/chosila/Projects/2018metaAnalysis/autodqm')
 import importlib.util
-spec = importlib.util.spec_from_file_location('compare_hists', '/home/chosila/Projects/AutoDQM-p3/autodqm/compare_hists.py')
+spec = importlib.util.spec_from_file_location('compare_hists', '/home/chosila/Projects/2018metaAnalysis/autodqm/compare_hists.py')
 compare_hists = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(compare_hists)
 import ROOT
@@ -29,8 +29,8 @@ baserefdir = 'rootfiles/ref/'
 datadirs = [basedatadir + i for i in os.listdir(basedatadir)]
 refdirs = [baserefdir + i for i in os.listdir(baserefdir)]
 #datadirs = [baserefdir + i for i in os.listdir(baserefdir)]
-data_path = 'rootfiles/data/DQM_V0001_L1T_R000320008.root'
-ref_path = 'rootfiles/ref/DQM_V0001_L1T_R000320025.root'
+data_path = 'rootfiles/ref/DQM_V0001_L1T_R000320002.root'
+ref_path = 'rootfiles/ref/DQM_V0001_L1T_R000320023.root'
 config_dir = '../config'
 subsystem = 'EMTF'
 data_series = 'Run2018'
@@ -149,7 +149,7 @@ print(f'data path: {data_path}')
 results = compare_hists.process(config_dir, subsystem,
                                 data_series, data_sample, data_run, data_path,
                                 ref_series, ref_sample, ref_run, ref_path,
-                                output_dir='./out/', plugin_dir='/home/chosila/Projects/AutoDQM-p3/plugins')
+                                output_dir='./out/', plugin_dir='/home/chosila/Projects/2018metaAnalysis/plugins')
 
 for result in results:
     hists = result['hists']
@@ -393,3 +393,8 @@ print(f'maxpull1d: {max(maxpull1d)}, quantile: {np.quantile(maxpull1d, .95)}')
 print(f'chi21d: {max(chi21d)}, quantile: {np.quantile(chi21d, .95)}')
 print(f'maxpull2d: {max(maxpulls)}, quantile: {np.quantile(maxpulls, .95)}')
 print(f'chi22d: {max(chi22d)}, quantile: {np.quantile(chi22d, .95)}')
+
+maxpull1d.sort()
+maxpulls.sort()
+chi21d.sort()
+chi22d.sort()
