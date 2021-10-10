@@ -29,7 +29,7 @@ baserefdir = 'rootfiles/ref/'
 datadirs = [basedatadir + i for i in os.listdir(basedatadir)]
 refdirs = [baserefdir + i for i in os.listdir(baserefdir)]
 #datadirs = [baserefdir + i for i in os.listdir(baserefdir)]
-data_path = 'rootfiles/data/DQM_V0001_L1T_R000320008.root'
+data_path = 'rootfiles/ref/DQM_V0001_L1T_R000320006.root'
 ref_path = 'rootfiles/ref/DQM_V0001_L1T_R000320006.root'
 config_dir = '../config'
 subsystem = 'EMTF'
@@ -285,7 +285,9 @@ hist2dnbins = np.array(hist2dnbins)
 nevents2dref = np.array(nevents2dref)
 hist2dnbins = np.array(hist2dnbins)
 
-
+## note: i tried to put the pulls array into the df too, but the df coudln't display it
+## as an array so it was futile. Just use the df to find the correct index and use 
+## that to find the corresponding pulls in the pulls list
 hists1d = pd.DataFrame(histnames1d)
 hists1d = hists1d.rename(columns={0: 'histnames'})
 hists1d = hists1d.assign(ks = kss)
@@ -310,6 +312,7 @@ hists2d = hists2d.assign(run = run2d)
 hists2d = hists2d.assign(avgdata = np.divide(nevents2ddata, hist2dnbins, out = np.zeros_like(nevents2ddata), where=hist2dnbins!=0))
 hists2d = hists2d.assign(avgref = np.divide(nevents2dref, hist2dnbins, out = np.zeros_like(nevents2ddata), where=hist2dnbins!=0))
 hists2d = hists2d.assign(chi2 = chi22d)
+
 
 
 pickle.dump(hists1d, open('pickles/hists1d.pkl','wb'))
@@ -464,6 +467,7 @@ for i,x in enumerate(histnames2d):
         ax.set_title(x)
         os.makedirs(f'{plotdir}/pulls2d', exist_ok=True)
         fig.savefig(f'{plotdir}/pulls2d/{x}-scaleref-chi2.png', bbox_inches='tight')
+        plt.show()
         plt.close('all')
                                                                                                                                            
 for i,x in enumerate(histnames1d):
@@ -477,6 +481,7 @@ for i,x in enumerate(histnames1d):
         os.makedirs(f'{plotdir}/pulls1d', exist_ok=True)
         fig.savefig(f'{plotdir}/pulls1d/{x}-scaleref-chi2.png', bbox_inches='tight')
         plt.show()
+        plt.close('all')
         
 #%%
 
