@@ -26,6 +26,7 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
 
     data_hist = histpair.data_hist
     ref_hists_list = [x.values for x in histpair.ref_hists_list]
+    #ref_hists_list = [x.values for x in histpair.ref_hists_list]
 
     # check for 1d hists and that refs are not empty
     if "1" not in str(type(data_hist)) :
@@ -41,23 +42,26 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     data_hist_Entries = np.sum(data_hist_norm)
     ref_hist_Entries = np.mean(np.sum(ref_hists_list))
 
-    # normalize data hist
-    histscale = 1
-    datascale = histscale/data_hist_norm.sum()
-    if data_hist_Entries > 0: 
-        data_hist_norm*=datascale
 
-    # calculate the average of all ref_hists_list then normalize then error
+    ## calculate the ref arrays 
     ref_hist_arr = np.array(ref_hists_list)
+    ref_hist_errs = np.std(ref_hist_arr, axis=0)
     ref_hist_norm = np.mean(ref_hist_arr, axis=0)
-    refscale = histscale/ref_hist_norm.sum()
-    ref_hist_norm*=refscale
-    ref_hist_errs = np.std(ref_hist_arr, axis=0)  
+    ref_hist_scale = 1#/ref_hist_norm.sum()
+    ref_hist_norm*=ref_hist_scale
+    ref_hist_errs*=ref_hist_scale
     
-    #Calculate asymmetric error bars 
-    #data_hist_errs = np.nan_to_num(abs(np.array(scipy.stats.chi2.interval(0.6827, 2 * data_hist_norm)) / 2 - 1 - data_hist_norm))
-    data_hist_errs = np.square(data_hist_norm * datascale)
+    ## data arrays
+    data_hist_scale = ref_hist_norm.sum()/data_hist_norm.sum()
+    data_hist_norm*=data_hist_scale
+    # data_hist_errs = np.sqrt(data_hist_norm*data_hist_scale)
+    data_hist_errs = np.nan_to_num(abs(np.array(scipy.stats.chi2.interval(0.6827, 2 * data_hist_norm)) / 2 - 1 - data_hist_norm))
 
+    # import pickle
+    # pickle.dump(data_hist_errs, open(f'pickles/dataErr-{data_name}-sqrt.pkl','wb'))
+    # raise(ValueError)
+    
+    
 
     # ks = data_hist.KolmogorovTest(ref_hist, "M")
     ks = scipy.stats.kstest(ref_hist_norm, data_hist_norm)[0]
@@ -87,10 +91,10 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
         bin2 = ref_hist_norm[i]#ref_hist.GetBinContent(i)
 
         # Getting Proper Poisson error 
-        bin1err, bin2err = data_hist_errs[i], ref_hist_errs[i]
-        '''bin1err, bin2err = data_hist_errs[0, i], ref_hist_errs[i]
+        '''bin1err, bin2err = data_hist_errs[i], ref_hist_errs[i]'''
+        bin1err, bin2err = data_hist_errs[0, i], ref_hist_errs[i]
         if bin1 < bin2:
-            bin1err, bin2err = data_hist_errs[1, i], ref_hist_errs[i]'''
+            bin1err, bin2err = data_hist_errs[1, i], ref_hist_errs[i]
 
         # Count bins for chi2 calculation
         nBins += 1
@@ -106,32 +110,33 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
         chi2 += new_pull**2
 
         # Check if max_pull
-        max_pull = max(max_pull, abs(new_pull))
+        #max_pull = max(max_pull, abs(new_pull))
         #max_pull = maxPullNorm(max_pull, nBinsUsed)
 
 
         # Clamp the displayed value
         # fill_val = max(min(new_pull, pull_cap), -pull_cap)
-        fill_val = max_pull
+        #fill_val = max_pull
     
         # If the input bins were explicitly empty, make this bin white by
         # setting it out of range
         ## why is this done????
-        if bin1 == bin2 == 0:
-            fill_val = -999
+        #if bin1 == bin2 == 0:
+        #    fill_val = -999
         
-        pulls[i] = fill_val
+        pulls[i] = new_pull
         
     # Compute chi2
     if nBinsUsed > 0:
         chi2 = (chi2 / nBinsUsed)
-        max_pull = maxPullNorm(max_pull, nBinsUsed)
+        pulls = maxPullNorm(pulls, nBinsUsed)
+        max_pull = pulls.max()
     else:
         chi2=0
         max_pull = 0 
 
     
-    pulls = maxPullNorm(pulls, nBinsUsed)
+    
     
     canv = None
     artifacts = [pulls]
@@ -143,7 +148,7 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
         'Chi_Squared' : chi2,
         'Max_Pull_Val': max_pull,
         'nBins' : nBins,
-        'pulls' : pulls
+        'pulls' : (pulls, data_hist.edges)
     }
 
     return PluginResults(

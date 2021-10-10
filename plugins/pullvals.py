@@ -30,7 +30,6 @@ def pullvals(histpair,
         if i.values.sum() == 0:
             return None
 
-
     data_hist_norm = np.copy(data_hist.values)
     #ref_hist_norm = np .copy(ref_hist.values())
     ref_hists_list_norm = [np.copy(x.values) for x in ref_hists_list]
@@ -43,23 +42,26 @@ def pullvals(histpair,
 
     # Reject empty histograms
     is_good = data_hist_Entries != 0 # and data_hist.GetEntries() >= min_entries
- 
-    ## normalize all data to integrate to 1
-    histscale = 1
-    if data_hist_Entries > 0: 
-        data_hist_norm*=histscale/data_hist_norm.sum()
 
-            
-    #Calculate asymmetric error bars 
-    #data_hist_errs = np.nan_to_num(abs(np.array(scipy.stats.chi2.interval(0.6827, 2 * data_hist_norm)) / 2 - 1 - data_hist_norm))
-    data_hist_errs = np.sqrt(data_hist_norm*histscale/data_hist_norm.sum())    
-        
-    # calculate the average of all ref_hists_list 
+    # import pickle
+    # pickle.dump(data_hist_errs, open(f'pickles/dataErr-data_name.pkl','wb')) 
+    
+    
+    ## calculate the ref arrays 
     ref_hist_arr = np.array(ref_hists_list_norm)
+    ref_hist_errs = np.std(ref_hist_arr, axis=0)
     ref_hist_norm = np.mean(ref_hist_arr, axis=0)
-    if ref_hist_norm.sum() > 0: ref_hist_norm*=histscale/ref_hist_norm.sum()
-    ref_hist_errs = np.std(ref_hist_arr, axis=0)    
-
+    
+    
+    ref_hist_scale = 1#/ref_hist_norm.sum()
+    ref_hist_norm*=ref_hist_scale
+    ref_hist_errs*=ref_hist_scale
+    
+    ## data arrays
+    data_hist_scale = ref_hist_norm.sum()/data_hist_norm.sum()
+    data_hist_norm*=data_hist_scale
+    # data_hist_errs = np.sqrt(data_hist_norm*data_hist_scale)
+    data_hist_errs = np.nan_to_num(abs(np.array(scipy.stats.chi2.interval(0.6827, 2 * data_hist_norm)) / 2 - 1 - data_hist_norm))
 
     max_pull = 0
     nBins = 0
@@ -69,6 +71,7 @@ def pullvals(histpair,
     
     # pulls = list()
     pulls = np.zeros_like(ref_hist_norm)
+
     
     for x in range(0, data_hist_norm.shape[0]):
         for y in range(0, data_hist_norm.shape[1]):
@@ -81,42 +84,45 @@ def pullvals(histpair,
 
             
             ## Getting Proper Poisson error 
-            bin1err, bin2err = data_hist_errs[x,y], ref_hist_errs[x,y]
-            '''bin1err, bin2err = data_hist_errs[0, x, y], ref_hist_errs[x, y]
-            if bin1 < bin2:
-                bin1err, bin2err = data_hist_errs[1, x, y], ref_hist_errs[x, y]'''
+            '''bin1err, bin2err = data_hist_errs[x,y], ref_hist_errs[x,y]'''
 
-            
+            bin1err, bin2err = data_hist_errs[0, x, y], ref_hist_errs[x, y]
+            if bin1 < bin2:
+                bin1err, bin2err = data_hist_errs[1, x, y], ref_hist_errs[x, y]
+
+
             # Ensure that divide-by-zero error is not thrown when calculating pull
             if bin1err == 0 and bin2err == 0:
                 new_pull = 0
             else:
                 new_pull = pull(bin1, bin1err, bin2, bin2err)
+
                     
             #pulls.append(new_pull)
             # Sum pulls
             chi2 += new_pull**2
 
             # Check if max_pull
-            max_pull = max(max_pull, abs(new_pull))
+            #max_pull = max(max_pull, abs(new_pull))
 
             # Clamp the displayed value
-            fill_val = max_pull
+            #fill_val = new_pull#max_pull
 
             # If the input bins were explicitly empty, make this bin white by
             # setting it out of range
-            if bin1 == bin2 == 0:
-                fill_val = -999
+            # if bin1 == bin2 == 0:
+            #     fill_val = -999
 
             # Fill Pull Histogram
-            pulls[x,y] = fill_val
+            pulls[x,y] = new_pull
     
 
     ## make normed chi2 and maxpull
     if nBinsUsed > 0:
         chi2 = chi2/nBinsUsed  
-        max_pull = maxPullNorm(max_pull, nBinsUsed)
+        #max_pull = maxPullNorm(max_pull, nBinsUsed)
         pulls = maxPullNorm(pulls, nBinsUsed)
+        max_pull = pulls.max()
     else:
         chi2 = 0
         max_pull = 0
@@ -134,12 +140,12 @@ def pullvals(histpair,
         'Ref_Entries': ref_hist_Entries,
         'nBinsUsed' : nBinsUsed,
         'nBins' : nBins,
-        'new_pulls' : pulls # .reshape(refErr)
+        'new_pulls' : (pulls, data_hist.edges) 
         
     }
 
     artifacts = [pulls, 'data_text', 'ref_text']
-
+          
     return PluginResults(
         c,
         show=is_outlier,

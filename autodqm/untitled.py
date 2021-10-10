@@ -29,7 +29,7 @@ baserefdir = 'rootfiles/ref/'
 datadirs = [basedatadir + i for i in os.listdir(basedatadir)]
 refdirs = [baserefdir + i for i in os.listdir(baserefdir)]
 #datadirs = [baserefdir + i for i in os.listdir(baserefdir)]
-data_path = 'rootfiles/ref/DQM_V0001_L1T_R000320002.root'
+data_path = 'rootfiles/data/DQM_V0001_L1T_R000320008.root'
 ref_path = 'rootfiles/ref/DQM_V0001_L1T_R000320006.root'
 config_dir = '../config'
 subsystem = 'EMTF'
@@ -82,6 +82,7 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
     - ylabel (str) 
     - figname (str) - name to save the fig as 1
     '''
+    
     if y =='ks':
         fig, ax = plt.subplots()
         xbins = np.linspace(0, max(histdf[x]), xnbins)
@@ -95,19 +96,24 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         logxbins = np.logspace(xmin, xmax, xnbins, base=2)
         logybins = ybins#np.logspace(ymin, ymax, xnbins, base=2)
         
-        counts, _, _ = np.histogram2d(histdf[x], histdf[y], bins=(logxbins, logybins))
-        ax.hist2d(histdf[x], histdf[y], norm=mpl.colors.LogNorm(), bins=(xbins,ybins))
-        #ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm())
-        #ax.set_xscale('log', base=2)
-        #ax.set_yscale('log', base=2)
+        ## clip the bottoms so to include underflow 
+        # numpy.clip(a, a_min, a_max,
+        xvals = np.clip(a = histdf[x], a_min = logxbins[0] , a_max = logxbins[-1])
+        yvals = np.clip(a = histdf[y], a_min = logybins[0] , a_max = logybins[-1])
+        
+        counts, _, _ = np.histogram2d(xvals, yvals, bins=(logxbins, logybins))
+        #ax.hist2d(histdf[x], histdf[y], norm=mpl.colors.LogNorm(), bins=(xbins,ybins))
+        ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm(), shading='auto')
+        ax.set_xscale('log', base=2)
+        ax.set_yscale('log', base=2)
 
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
 
         ax.set_title(title)
         textstr = generateLabel(df=histdf, y=y, x=x)
-        ax.text(1.25*max(histdf[x]), logybins[9], textstr, bbox=props)
-        plt.savefig(f'{plotdir}/{plotname}.png', bbox_inches='tight')
+        ax.text(1.25*max(histdf[x]), logybins[15], textstr, bbox=props)
+        plt.savefig(f'{plotdir}/{plotname}-scaleref-chi2.png', bbox_inches='tight')
         plt.show()
         plt.close(fig)
     else: 
@@ -125,17 +131,20 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         maxval = ybins[-2]
         ytoplot = np.clip(histdf[y], a_min=0, a_max=maxval)
         
-        counts, _, _ = np.histogram2d(histdf[x], histdf[y], bins=(logxbins, logybins))
         
-        # ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm())
-        # ax.set_xscale('log', base=2)
-        # ax.set_yscale('log', base=2)
+        xvals = np.clip(a = histdf[x], a_min = logxbins[0] , a_max = logxbins[-1])
+        yvals = np.clip(a = histdf[y], a_min = logybins[0] , a_max = logybins[-1])
+        counts, _, _ = np.histogram2d(xvals, yvals, bins=(logxbins, logybins))
+        
+        ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm(), shading='auto')
+        ax.set_xscale('log', base=2)
+        ax.set_yscale('log', base=2)
         
         #ybinlabels = ybins.astype(str)[::2]
         #ybinlabels[-1] += '+'
         # maxval = ybins[-2]
         # ytoplot = np.clip(histdf[y], a_min=0, a_max=maxval)
-        ax.hist2d(histdf[x], ytoplot, norm=mpl.colors.LogNorm(), bins=[xbins, ybins])
+        # ax.hist2d(histdf[x], ytoplot, norm=mpl.colors.LogNorm(), bins=[xbins, ybins])
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         ax.set_title(title)
@@ -143,7 +152,7 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         #ax.set_yticklabels(ybinlabels)
         textstr = generateLabel(df=histdf, y=y, x=x)
         ax.text(1.25*max(histdf[x]), logybins[9], textstr, bbox=props)
-        plt.savefig(f'{plotdir}/{plotname}.png', bbox_inches='tight')
+        plt.savefig(f'{plotdir}/{plotname}-scaleref-chi2.png', bbox_inches='tight')
         plt.show()
         plt.close(fig)
     #%%
@@ -303,27 +312,30 @@ hists2d = hists2d.assign(avgref = np.divide(nevents2dref, hist2dnbins, out = np.
 hists2d = hists2d.assign(chi2 = chi22d)
 
 
-pickle.dump(hists1d, open('pickles/hists1d-uproot.pkl','wb'))
-pickle.dump(hists2d, open('pickles/hists2d-uproot.pkl','wb'))
-aa1dup = pickle.load(open('pickles/hists1d-uproot.pkl','rb'))
-aa2dup = pickle.load(open('pickles/hists2d-uproot.pkl', 'rb'))
+pickle.dump(hists1d, open('pickles/hists1d.pkl','wb'))
+pickle.dump(hists2d, open('pickles/hists2d.pkl','wb'))
+
 
 import os
 
 os.makedirs(plotdir, exist_ok=True)
 
 
-maxpull1d_max = np.log2(10)#21
-maxpull2d_max = np.log2(10)#10.5
-chi21d_max = np.log2(max(chi21d))#50
-chi22d_max = np.log2(max(chi22d))#100
-binmin = np.log2(2**-10)
+maxpull1d_max = np.log2(2**3.1)#21
+maxpull1d_min = np.log2(2**-10)
+maxpull2d_max = np.log2(2**3.1)#10.5
+maxpull2d_min = np.log2(2**-10)
+chi21d_max = np.log2(2**7)#50
+chi21d_min = np.log2(2**-4)
+chi22d_max = np.log2(2**7)#100
+chi22d_min = np.log2(2**-4)
 
-ksBins = np.logspace(binmin, np.log2(1), 20)
-maxpull1dBins = np.logspace(binmin, maxpull1d_max, ynbins, base=2)
-maxpull2dBins = np.logspace(2**-4, maxpull2d_max, ynbins, base=2)
-chi21dBins = np.logspace(binmin, chi21d_max, ynbins, base=2)
-chi22dBins = np.logspace(binmin, chi22d_max, ynbins, base=2)
+
+ksBins = np.logspace(np.log2(2**-3), np.log2(1), 20)
+maxpull1dBins = np.logspace(maxpull1d_min, maxpull1d_max, ynbins, base=2)
+maxpull2dBins = np.logspace(maxpull2d_min, maxpull2d_max, ynbins, base=2)
+chi21dBins = np.logspace(chi21d_min, chi21d_max, ynbins, base=2)
+chi22dBins = np.logspace(chi22d_min, chi22d_max, ynbins, base=2)
 
 #%%
 #------------------------------ ks/pv/chi2 vs nbins ------------------------------
@@ -435,16 +447,42 @@ makePlot(histdf=hists2d, y='chi2', x='avgdata', ybins=chi22dBins,
 #          title=f'ref:{ref_run}', plotname='ref_chi2-avg-2d')
 
 #%%
+
 for i,x in enumerate(histnames2d):
     l = ['cscLCTTimingFracBX0', 'cscChamberWireMENeg12', 
          'cscChamberStripMEPos12', 'cscChamberStripMENeg32', 
          'emtfTrackOccupancy']
     # check if anything in l is in histname2d
-    if any(substring in x for substring in l):
-        print(pulls2d[i].shape)
-        #fig, ax = plt.subplots()
+    if True: #any(substring in x for substring in l):
+        histvals = pulls2d[i][0]
+        histedges = pulls2d[i][1]
+        xedges = getBinCenter(histedges[0])
+        yedges = getBinCenter(histedges[1])
+        fig, ax = plt.subplots()
+        im = ax.pcolormesh(xedges, yedges, histvals.T, cmap='viridis', shading='auto')
+        fig.colorbar(im)
+        ax.set_title(x)
+        os.makedirs(f'{plotdir}/pulls2d', exist_ok=True)
+        fig.savefig(f'{plotdir}/pulls2d/{x}-scaleref-chi2.png', bbox_inches='tight')
+        plt.close('all')
+                                                                                                                                           
+for i,x in enumerate(histnames1d):
+    if True:#x == 'rpcHitPhiREPos42': 
+        histvals = pulls1d[i][0]
+        histedge = pulls1d[i][1]
+        xedges = getBinCenter(histedge)
+        fig, ax = plt.subplots()
+        ax.bar(xedges, histvals)
+        ax.set_title(x)
+        os.makedirs(f'{plotdir}/pulls1d', exist_ok=True)
+        fig.savefig(f'{plotdir}/pulls1d/{x}-scaleref-chi2.png', bbox_inches='tight')
+        plt.show()
         
-        #fig.close()
+#%%
+
+
+
+
         
 #%%
 print(f'maxpull1d: {max(maxpull1d)}, quantile: {np.quantile(maxpull1d, .95)}')
