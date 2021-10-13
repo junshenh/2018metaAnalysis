@@ -47,9 +47,21 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     ref_hist_arr = np.array(ref_hists_list)
     ref_hist_errs = np.std(ref_hist_arr, axis=0)
     ref_hist_norm = np.mean(ref_hist_arr, axis=0)
+    
+    #================================================================
+    errlist = np.array([np.sqrt(x.variances) for x in histpair.ref_hists_list])
+    errpercentlist = np.divide(errlist, ref_hist_arr, out=np.zeros_like(errlist), where=ref_hist_arr!=0)
+    errpercent = np.mean(errpercentlist, axis=0)
+    #================================================================
+     
     ref_hist_scale = 1#/ref_hist_norm.sum()
     ref_hist_norm*=ref_hist_scale
     ref_hist_errs*=ref_hist_scale
+    #================================================================
+    ref_hist_errs = ref_hist_norm*errpercent
+    #================================================================
+    
+    ref_hist_errs
     
     ## data arrays
     data_hist_scale = ref_hist_norm.sum()/data_hist_norm.sum()
@@ -174,6 +186,8 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
 #     val = (1-probNorm) 
 #     val = val if val < .9999999999999999 else .9999999999999999
 #     return np.sqrt(ROOT.TMath.ChisquareQuantile(val,1))
+
+
 
 def draw_same(data_hist, data_run, ref_hist, ref_run):
     # Set up canvas

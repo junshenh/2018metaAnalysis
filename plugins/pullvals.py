@@ -50,18 +50,27 @@ def pullvals(histpair,
     ## calculate the ref arrays 
     ref_hist_arr = np.array(ref_hists_list_norm)
     ref_hist_errs = np.std(ref_hist_arr, axis=0)
+    #================================================================
+    errlist = np.array([np.sqrt(x.variances) for x in ref_hists_list])
+    errpercentlist = np.divide(errlist, ref_hist_arr, out=np.zeros_like(errlist), where=ref_hist_arr!=0)
+    errpercent = np.mean(errpercentlist, axis=0)
+    #================================================================
     ref_hist_norm = np.mean(ref_hist_arr, axis=0)
     
     
     ref_hist_scale = 1#/ref_hist_norm.sum()
     ref_hist_norm*=ref_hist_scale
     ref_hist_errs*=ref_hist_scale
+    #================================================================
+    ref_hist_errs = ref_hist_norm*errpercent
+    #================================================================
     
     ## data arrays
     data_hist_scale = ref_hist_norm.sum()/data_hist_norm.sum()
     data_hist_norm*=data_hist_scale
     # data_hist_errs = np.sqrt(data_hist_norm*data_hist_scale)
     data_hist_errs = np.nan_to_num(abs(np.array(scipy.stats.chi2.interval(0.6827, 2 * data_hist_norm)) / 2 - 1 - data_hist_norm))
+
 
     max_pull = 0
     nBins = 0
@@ -110,11 +119,12 @@ def pullvals(histpair,
 
             # If the input bins were explicitly empty, make this bin white by
             # setting it out of range
+            fill_val = new_pull
             # if bin1 == bin2 == 0:
             #     fill_val = -999
 
             # Fill Pull Histogram
-            pulls[x,y] = new_pull
+            pulls[x,y] = fill_val#new_pull
     
 
     ## make normed chi2 and maxpull
@@ -127,6 +137,90 @@ def pullvals(histpair,
         chi2 = 0
         max_pull = 0
         
+    
+    
+    
+    
+
+    #-------------------------------------------------------------------------
+    print(data_hist.name)
+    for i in ref_hists_list: 
+        ref_ratios = np.divide(np.sqrt(i.variances),i.values, out = np.zeros_like(i.values), where=i.values!=0)
+        
+        print(ref_ratios.sum()/np.count_nonzero(ref_ratios))
+        print(ref_ratios.mean())
+        print('---')
+        
+    print('==========================================================')
+    
+    if histpair.data_name in ['cscDQMOccupancy', 'emtfTrackOccupancy', 'cscLCTOccupancy']:
+        import matplotlib.pyplot as plt
+        def getBinCenter(arr):
+            arrCen = list()
+            for i in range(len(arr)-1):
+                arrCen.append((arr[i+1]+arr[i])/2)
+            return arrCen
+    
+        histedges = data_hist.edges
+        xedges = getBinCenter(histedges[0])
+        yedges = getBinCenter(histedges[1])
+        
+        '''fig, ax = plt.subplots()
+        im = ax.pcolormesh(xedges, yedges, data_hist_norm.T, cmap='viridis', shading='auto')
+        ax.set_title(f'data_hist_norm ({histpair.data_name})')
+        fig.colorbar(im)
+        plt.show()
+        plt.close(fig)
+        
+        fig, ax = plt.subplots()
+        im = ax.pcolormesh(xedges, yedges, ref_hist_norm.T, cmap='viridis', shading='auto')
+        ax.set_title(f'ref_hist_norm ({histpair.data_name})')
+        fig.colorbar(im)
+        plt.show()
+        plt.close(fig)
+        
+        fig, ax = plt.subplots()
+        im = ax.pcolormesh(xedges, yedges, ref_hist_errs.T, cmap='viridis', shading='auto')
+        ax.set_title(f'ref_hist_errs ({histpair.data_name})')
+        fig.colorbar(im)
+        plt.show()
+        plt.close(fig)
+        '''
+        fig, ax = plt.subplots()
+        ratio = np.divide(ref_hist_errs, ref_hist_norm, out=np.zeros_like(ref_hist_errs), where=ref_hist_norm!=0).T
+        im = ax.pcolormesh(xedges, yedges, ratio, cmap='viridis', shading='auto')
+        ax.set_title(f'ref ratios ({histpair.data_name})')
+        fig.colorbar(im)
+        plt.show()
+        plt.close(fig)
+    
+    
+        '''fig, ax = plt.subplots()
+        dataErrTmp = data_hist_errs
+        top = dataErrTmp[0]
+        bot = dataErrTmp[1]
+        data_hist_errs = top
+        data_hist_errs[ref_hist_norm < data_hist_norm] = bot[ref_hist_norm < data_hist_norm]
+        im = ax.pcolormesh(xedges, yedges, data_hist_errs.T, cmap='viridis', shading='auto')
+        ax.set_title(f'data_hist_errs ({histpair.data_name})')
+        fig.colorbar(im)
+        plt.show()
+        plt.close(fig)'''
+    
+        '''fig, ax = plt.subplots()
+        im = ax.pcolormesh(xedges, yedges, pulls.T, cmap='viridis', shading='auto')
+        ax.set_title(f'pulls ({histpair.data_name})')
+        fig.colorbar(im)
+        plt.show()
+        plt.close(fig)'''
+        
+
+        
+    #--------------------------------------------------------------------------
+    
+    
+    
+    
     
     is_outlier = is_good and (chi2 > chi2_cut or abs(max_pull) > pull_cut)
 
@@ -171,44 +265,43 @@ def maxPullNorm(maxPull, nBinsUsed):
     ##return np.sqrt(ROOT.TMath.ChisquareQuantile(val,1))
     
 
-# def normalize_rows(data_hist, ref_hist):
+def normalize_rows(data_hist_norm, ref_hist_norm):
 
-#     for y in range(1, ref_hist.GetNbinsY() + 1):
+    for y in range(0, ref_hist_norm.shape[1]):
 
-#         # Stores sum of row elements
-#         rrow = 0
-#         frow = 0
+        # Stores sum of row elements
+        rrow = 0
+        frow = 0
 
-#         # Sum over row elements
-#         for x in range(1, ref_hist.GetNbinsX() + 1):
+        # Sum over row elements
+        for x in range(0, ref_hist_norm.shape[0]):
 
-#             # Bin data
-#             rbin = ref_hist.GetBinContent(x, y)
-#             fbin = data_hist.GetBinContent(x, y)
+            # Bin data
+            rbin = ref_hist_norm[x,y]
+            fbin = data_hist_norm[x, y]
 
-#             rrow += rbin
-#             frow += fbin
+            rrow += rbin
+            frow += fbin
 
-#         # Scaling factors
-#         # Prevent divide-by-zero error
-#         if frow == 0:
-#             frow = 1
-#         if frow > 0:
-#             sf = float(rrow) / frow
-#         else:
-#             sf = 1
-#         # Prevent scaling everything to zero
-#         if sf == 0:
-#             sf = 1
+        # Scaling factors
+        # Prevent divide-by-zero error
+        if frow == 0:
+            frow = 1
+        if frow > 0:
+            sf = float(rrow) / frow
+        else:
+            sf = 1
+        # Prevent scaling everything to zero
+        if sf == 0:
+            sf = 1
 
-#         # Normalization
-#         for x in range(1, data_hist.GetNbinsX() + 1):
-#             # Bin data
-#             fbin = data_hist.GetBinContent(x, y)
-#             fbin_err = data_hist.GetBinError(x, y)
+        # Normalization
+        for x in range(0, ref_hist_norm.shape[0]):
+            # Bin data
+            fbin = data_hist_norm[x, y]
+            fbin_err = (fbin)**(.5)
 
-#             # Normalize bin
-#             data_hist.SetBinContent(x, y, (fbin * sf))
-#             data_hist.SetBinError(x, y, (fbin_err * sf))
+            # Normalize bin
 
-#     return
+            data_hist_norm[x, y] = (fbin * sf)
+    return data_hist_norm

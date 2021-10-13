@@ -29,7 +29,7 @@ baserefdir = 'rootfiles/ref/'
 datadirs = [basedatadir + i for i in os.listdir(basedatadir)]
 refdirs = [baserefdir + i for i in os.listdir(baserefdir)]
 #datadirs = [baserefdir + i for i in os.listdir(baserefdir)]
-data_path = 'rootfiles/ref/DQM_V0001_L1T_R000320006.root'
+data_path = 'rootfiles/data/DQM_V0001_L1T_R000320008.root'
 ref_path = 'rootfiles/ref/DQM_V0001_L1T_R000320006.root'
 config_dir = '../config'
 subsystem = 'EMTF'
@@ -56,7 +56,7 @@ def getBinCenter(arr):
     arrCen = list()
     for i in range(len(arr)-1):
         arrCen.append((arr[i+1]+arr[i])/2)
-    return arrCen
+    return np.array(arrCen)
 
 def generateLabel(df, y, x):
     df = df.sort_values(by=[y], ascending=False)
@@ -113,7 +113,7 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         ax.set_title(title)
         textstr = generateLabel(df=histdf, y=y, x=x)
         ax.text(1.25*max(histdf[x]), logybins[15], textstr, bbox=props)
-        plt.savefig(f'{plotdir}/{plotname}-scaleref-chi2.png', bbox_inches='tight')
+        plt.savefig(f'{plotdir}/{plotname}-chi2.png', bbox_inches='tight')
         plt.show()
         plt.close(fig)
     else: 
@@ -152,7 +152,7 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         #ax.set_yticklabels(ybinlabels)
         textstr = generateLabel(df=histdf, y=y, x=x)
         ax.text(1.25*max(histdf[x]), logybins[9], textstr, bbox=props)
-        plt.savefig(f'{plotdir}/{plotname}-scaleref-chi2.png', bbox_inches='tight')
+        plt.savefig(f'{plotdir}/{plotname}-chi2.png', bbox_inches='tight')
         plt.show()
         plt.close(fig)
     #%%
@@ -462,26 +462,30 @@ for i,x in enumerate(histnames2d):
         xedges = getBinCenter(histedges[0])
         yedges = getBinCenter(histedges[1])
         fig, ax = plt.subplots()
-        im = ax.pcolormesh(xedges, yedges, histvals.T, cmap='viridis', shading='auto')
+        vmin,vmax = 0.0,8.292361075813595
+        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+        im = ax.pcolormesh(xedges, yedges, histvals.T, norm=norm, cmap='viridis', shading='auto')
         fig.colorbar(im)
         ax.set_title(x)
         os.makedirs(f'{plotdir}/pulls2d', exist_ok=True)
-        fig.savefig(f'{plotdir}/pulls2d/{x}-scaleref-chi2.png', bbox_inches='tight')
+        fig.savefig(f'{plotdir}/pulls2d/{x}-chi2.png', bbox_inches='tight')
         plt.show()
-        plt.close('all')
-                                                                                                                                           
+        plt.close(fig)
+                          #%%                                                                                                                 
 for i,x in enumerate(histnames1d):
-    if True:#x == 'rpcHitPhiREPos42': 
+    if True: #x == 'emtfTrackEta': 
         histvals = pulls1d[i][0]
         histedge = pulls1d[i][1]
         xedges = getBinCenter(histedge)
         fig, ax = plt.subplots()
-        ax.bar(xedges, histvals)
+        width = xedges[-1]-xedges[-2]
+        ax.set_ylim([0, 8.292361075813595])
+        ax.bar(xedges, histvals, width)
         ax.set_title(x)
         os.makedirs(f'{plotdir}/pulls1d', exist_ok=True)
-        fig.savefig(f'{plotdir}/pulls1d/{x}-scaleref-chi2.png', bbox_inches='tight')
+        fig.savefig(f'{plotdir}/pulls1d/{x}-chi2.png', bbox_inches='tight')
         plt.show()
-        plt.close('all')
+        plt.close(fig)
         
 #%%
 
