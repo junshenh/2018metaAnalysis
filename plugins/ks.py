@@ -18,26 +18,77 @@ def comparators():
 
 
 def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
-
-
     data_name = histpair.data_name
     ref_name = histpair.ref_name
 
 
+
     data_hist = histpair.data_hist
-    ref_hists_list = [x.values for x in histpair.ref_hists_list]
-    #ref_hists_list = [x.values for x in histpair.ref_hists_list]
+    ref_hists_list = [x for x in histpair.ref_hists_list if x.values.sum() > 0]
+    nRef = len(ref_hists_list)
 
     # check for 1d hists and that refs are not empty
     if "1" not in str(type(data_hist)) :
         return None
-    for i in ref_hists_list:
-        if i.sum() == 0:
-            return None
-    if data_hist.values.sum() == 0: 
-        return None
+
+    
+    
+    data_raw = data_hist.values
+    ref_list_raw = np.array([x.values for x in ref_hists_list])
+        
+    ## num entries
+    data_hist_Entries = np.sum(data_raw)
+    ref_hist_Entries = ref_list_raw.mean(axis=0).sum()
+    
+    is_good = data_hist_Entries > 0
+    
+    ## outside if because need ref_norm_avg for nBinsUsed
+    ref_list_norm = np.array([x*1/x.sum() for x in ref_list_raw])
+    ref_norm_avg = ref_list_norm.mean(axis=0)
+    if is_good and nRef > 0:
+        ## calculate normalized ref and data arrays
+        
+        data_norm = data_raw*1/data_raw.sum()
+        varR_norm = ref_list_norm.var(axis=0)
+        sumR = ref_list_norm.sum(axis=0)
+        
+        pulls = pull(data_norm, ref_norm_avg, data_hist_Entries, varR_norm, sumR, nRef)
+    else: 
+        pulls = np.zeros_like(data_raw)
+
+    
+    ## only fuilled bins used for calculating chi2
+    nBinsUsed = np.count_nonzero(np.add(ref_norm_avg, data_raw)) 
+    chi2 = np.square(pulls).sum()
+    max_pull = maxPullNorm(pulls, nBinsUsed).max()
+    nBins = data_hist.numbins
+    
+    ks = scipy.stats.kstest(ref_norm_avg, data_norm)[0]
+    
+    
+    is_outlier = is_good and ks > ks_cut
 
 
+    canv = None
+    artifacts = [pulls]
+
+    info = {
+        'Data_Entries': data_hist_Entries,
+        'Ref_Entries': ref_hist_Entries,
+        'KS_Val': ks,
+        'Chi_Squared' : chi2,
+        'Max_Pull_Val': max_pull,
+        'nBins' : nBins,
+        'pulls' : (pulls, data_hist.edges)
+    }
+
+    return PluginResults(
+        canv,
+        show=is_outlier,
+        info=info,
+        artifacts=artifacts)
+
+#%%
     data_hist_norm = np.copy(data_hist.values)
     data_hist_Entries = np.sum(data_hist_norm)
     ref_hist_Entries = np.mean(np.sum(ref_hists_list))
@@ -45,23 +96,16 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
 
     ## calculate the ref arrays 
     ref_hist_arr = np.array(ref_hists_list)
-    ref_hist_errs = np.std(ref_hist_arr, axis=0)
     ref_hist_norm = np.mean(ref_hist_arr, axis=0)
-    ref_hist_scale = 1#/ref_hist_norm.sum()
-    ref_hist_norm*=ref_hist_scale
-    ref_hist_errs*=ref_hist_scale
+    ref_hist_arr = np.array([x*ref_hist_norm.sum()/x.sum() if x.sum() > 0 else x for x in ref_hist_arr])
+    ref_hist_errs = np.std(ref_hist_arr, axis=0)
+
     
     ## data arrays
     data_hist_scale = ref_hist_norm.sum()/data_hist_norm.sum()
     data_hist_norm*=data_hist_scale
     # data_hist_errs = np.sqrt(data_hist_norm*data_hist_scale)
     data_hist_errs = np.nan_to_num(abs(np.array(scipy.stats.chi2.interval(0.6827, 2 * data_hist_norm)) / 2 - 1 - data_hist_norm))
-
-    # import pickle
-    # pickle.dump(data_hist_errs, open(f'pickles/dataErr-{data_name}-sqrt.pkl','wb'))
-    # raise(ValueError)
-    
-    
 
     # ks = data_hist.KolmogorovTest(ref_hist, "M")
     ks = scipy.stats.kstest(ref_hist_norm, data_hist_norm)[0]

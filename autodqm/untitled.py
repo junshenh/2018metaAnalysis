@@ -29,7 +29,7 @@ baserefdir = 'rootfiles/ref/'
 datadirs = [basedatadir + i for i in os.listdir(basedatadir)]
 refdirs = [baserefdir + i for i in os.listdir(baserefdir)]
 #datadirs = [baserefdir + i for i in os.listdir(baserefdir)]
-data_path = 'rootfiles/ref/DQM_V0001_L1T_R000320006.root'
+data_path = 'rootfiles/ref/DQM_V0001_L1T_R000320002.root'
 ref_path = 'rootfiles/ref/DQM_V0001_L1T_R000320006.root'
 config_dir = '../config'
 subsystem = 'EMTF'
@@ -113,7 +113,7 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         ax.set_title(title)
         textstr = generateLabel(df=histdf, y=y, x=x)
         ax.text(1.25*max(histdf[x]), logybins[15], textstr, bbox=props)
-        plt.savefig(f'{plotdir}/{plotname}-scaleref-chi2.png', bbox_inches='tight')
+        plt.savefig(f'{plotdir}/{plotname}-chi2.png', bbox_inches='tight')
         plt.show()
         plt.close(fig)
     else: 
@@ -152,7 +152,7 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         #ax.set_yticklabels(ybinlabels)
         textstr = generateLabel(df=histdf, y=y, x=x)
         ax.text(1.25*max(histdf[x]), logybins[9], textstr, bbox=props)
-        plt.savefig(f'{plotdir}/{plotname}-scaleref-chi2.png', bbox_inches='tight')
+        plt.savefig(f'{plotdir}/{plotname}-chi2.png', bbox_inches='tight')
         plt.show()
         plt.close(fig)
     #%%
@@ -194,11 +194,17 @@ pulls2d = list()
 data_run = data_path[-11:-5]
 print(f'ref path: {ref_path}')
 print(f'data path: {data_path}')
+import time
+start = time.time()
 results = compare_hists.process(config_dir, subsystem,
                                 data_series, data_sample, data_run, data_path,
                                 ref_series, ref_sample, ref_run, ref_path,
                                 ref_list, ref_runs_list,
                                 output_dir='./out/', plugin_dir='/home/chosila/Projects/2018metaAnalysis/plugins')
+
+end = time.time()
+print('time taken: ', end-start)
+
 
 for result in results:
     hists = result['hists']
@@ -312,11 +318,6 @@ hists2d = hists2d.assign(run = run2d)
 hists2d = hists2d.assign(avgdata = np.divide(nevents2ddata, hist2dnbins, out = np.zeros_like(nevents2ddata), where=hist2dnbins!=0))
 hists2d = hists2d.assign(avgref = np.divide(nevents2dref, hist2dnbins, out = np.zeros_like(nevents2ddata), where=hist2dnbins!=0))
 hists2d = hists2d.assign(chi2 = chi22d)
-
-
-
-pickle.dump(hists1d, open('pickles/hists1d.pkl','wb'))
-pickle.dump(hists2d, open('pickles/hists2d.pkl','wb'))
 
 
 import os
@@ -451,35 +452,47 @@ makePlot(histdf=hists2d, y='chi2', x='avgdata', ybins=chi22dBins,
 
 #%%
 
+maxpullval = 8.292361075813595
+top5chi2 = hists2d.sort_values(by='chi2',ascending=False).histnames[:5].to_list()
+top5maxpull = hists2d.sort_values(by='maxpull',ascending=False).histnames[:5].to_list()
+l = top5chi2 + top5maxpull
+
 for i,x in enumerate(histnames2d):
-    l = ['cscLCTTimingFracBX0', 'cscChamberWireMENeg12', 
-         'cscChamberStripMEPos12', 'cscChamberStripMENeg32', 
-         'emtfTrackOccupancy']
+    # l = ['cscLCTTimingFracBX0', 'cscChamberWireMENeg12', 
+    #      'cscChamberStripMEPos12', 'cscChamberStripMENeg32', 
+    #      'emtfTrackOccupancy']
     # check if anything in l is in histname2d
-    if True: #any(substring in x for substring in l):
+    if any(substring in x for substring in l):
         histvals = pulls2d[i][0]
         histedges = pulls2d[i][1]
         xedges = getBinCenter(histedges[0])
         yedges = getBinCenter(histedges[1])
         fig, ax = plt.subplots()
-        im = ax.pcolormesh(xedges, yedges, histvals.T, cmap='viridis', shading='auto')
+        norm = mpl.colors.Normalize(vmin=-maxpullval, vmax=maxpullval)
+        im = ax.pcolormesh(xedges, yedges, histvals.T, cmap='viridis', shading='auto', norm=norm)
         fig.colorbar(im)
         ax.set_title(x)
         os.makedirs(f'{plotdir}/pulls2d', exist_ok=True)
-        fig.savefig(f'{plotdir}/pulls2d/{x}-scaleref-chi2.png', bbox_inches='tight')
+        fig.savefig(f'{plotdir}/pulls2d/{x}-chi2.png', bbox_inches='tight')
         plt.show()
         plt.close('all')
-                                                                                                                                           
+#%%    
+
+top5chi2 = hists1d.sort_values(by='chi2',ascending=False).histnames[:5].to_list()
+top5maxpull = hists1d.sort_values(by='maxpull',ascending=False).histnames[:5].to_list()
+l = top5chi2 + top5maxpull                                                                                                                 
 for i,x in enumerate(histnames1d):
-    if True:#x == 'rpcHitPhiREPos42': 
+    if any(substring in x for substring in l):
         histvals = pulls1d[i][0]
         histedge = pulls1d[i][1]
         xedges = getBinCenter(histedge)
+        width = histedge[1] - histedge[0]
         fig, ax = plt.subplots()
-        ax.bar(xedges, histvals)
+        ax.bar(xedges, histvals, width)
         ax.set_title(x)
+        ax.set_ylim([-maxpullval, maxpullval])
         os.makedirs(f'{plotdir}/pulls1d', exist_ok=True)
-        fig.savefig(f'{plotdir}/pulls1d/{x}-scaleref-chi2.png', bbox_inches='tight')
+        fig.savefig(f'{plotdir}/pulls1d/{x}-chi2.png', bbox_inches='tight')
         plt.show()
         plt.close('all')
         

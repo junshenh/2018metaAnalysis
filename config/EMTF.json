@@ -1,7 +1,7 @@
 {
   "main_gdir": "DQMData/Run {0}/L1T/Run summary/L1TStage2EMTF/",
   "hists": [
-      {"path": "CSCInput/csc*"},
+        {"path": "CSCInput/csc*"},
       {"path": "RPCInput/rpc*"},
     {"path": "cscDQMOccupancy",
       "norm_type": "row",
