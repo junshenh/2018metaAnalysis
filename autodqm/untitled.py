@@ -29,7 +29,7 @@ baserefdir = 'rootfiles/ref/'
 datadirs = [basedatadir + i for i in os.listdir(basedatadir)]
 refdirs = [baserefdir + i for i in os.listdir(baserefdir)]
 #datadirs = [baserefdir + i for i in os.listdir(baserefdir)]
-data_path = 'rootfiles/data/DQM_V0001_L1T_R000320008.root'
+data_path = 'rootfiles/ref/DQM_V0001_L1T_R000320002.root'
 ref_path = 'rootfiles/ref/DQM_V0001_L1T_R000320006.root'
 config_dir = '../config'
 subsystem = 'EMTF'
@@ -472,8 +472,8 @@ for i,x in enumerate(histnames2d):
         im = ax.pcolormesh(xedges, yedges, histvals.T, cmap='viridis', shading='auto', norm=norm)
         fig.colorbar(im)
         ax.set_title(x)
-        os.makedirs(f'{plotdir}/pulls2d', exist_ok=True)
-        fig.savefig(f'{plotdir}/pulls2d/{x}-chi2.png', bbox_inches='tight')
+        #os.makedirs(f'{plotdir}/pulls2d', exist_ok=True)
+        fig.savefig(f'{plotdir}/{x}.png', bbox_inches='tight') #'pulls2d/{x}-chi2.png', bbox_inches='tight')
         plt.show()
         plt.close('all')
 #%%    
@@ -491,8 +491,8 @@ for i,x in enumerate(histnames1d):
         ax.bar(xedges, histvals, width)
         ax.set_title(x)
         ax.set_ylim([-maxpullval, maxpullval])
-        os.makedirs(f'{plotdir}/pulls1d', exist_ok=True)
-        fig.savefig(f'{plotdir}/pulls1d/{x}-chi2.png', bbox_inches='tight')
+        #os.makedirs(f'{plotdir}/pulls1d', exist_ok=True)
+        fig.savefig(f'{plotdir}/{x}.png', bbox_inches='tight')#pulls1d/{x}-chi2.png', bbox_inches='tight')
         plt.show()
         plt.close('all')
         
