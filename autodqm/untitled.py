@@ -6,11 +6,11 @@ Created on Sun Jan  3 23:41:47 2021
 @author: si_sutantawibul1
 """
 import sys
-sys.path.insert(1, '/home/chosila/Projects/2018metaAnalysis/autodqm')
-import importlib.util
-spec = importlib.util.spec_from_file_location('compare_hists', '/home/chosila/Projects/2018metaAnalysis/autodqm/compare_hists.py')
-compare_hists = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(compare_hists)
+# sys.path.insert(1, '/home/chosila/Projects/2018metaAnalysis/autodqm')
+# import importlib.util
+# spec = importlib.util.spec_from_file_location('compare_hists', '/home/chosila/Projects/2018metaAnalysis/autodqm/compare_hists.py')
+# compare_hists = importlib.util.module_from_spec(spec)
+# spec.loader.exec_module(compare_hists)
 import ROOT
 import pickle
 import root_numpy
@@ -18,7 +18,9 @@ import matplotlib.pyplot as plt
 import os
 import numpy as np
 import matplotlib as mpl
+import compare_hists
 import pandas as pd
+
 
 
 
@@ -200,7 +202,7 @@ results = compare_hists.process(config_dir, subsystem,
                                 data_series, data_sample, data_run, data_path,
                                 ref_series, ref_sample, ref_run, ref_path,
                                 ref_list, ref_runs_list,
-                                output_dir='./out/', plugin_dir='/home/chosila/Projects/2018metaAnalysis/plugins')
+                                output_dir='./out/', plugin_dir='/home/chosila/Projects/metaAnalysis/plugins')
 
 end = time.time()
 print('time taken: ', end-start)

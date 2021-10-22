@@ -12,7 +12,7 @@ import uproot
 import numpy as np
 #from autodqm.histpair import HistPair
 from histpair import HistPair
-sys.path.insert(1, '/Users/si_sutantawibul1/Projects/AutoDQM/plugins')
+# sys.path.insert(1, '/Users/si_sutantawibul1/Projects/AutoDQM/plugins')
 
 def process(config_dir, subsystem,
             data_series, data_sample, data_run, data_path,
@@ -283,12 +283,12 @@ def load_comparators(plugin_dir):
         if modname[-3:] == '.py':
             modname = modname[:-3]
         try:
-            sys.path.append('/home/chosila/Projects/2018metaAnalysis/plugins')
+            #sys.path.append('/home/chosila/Projects/2018metaAnalysis/plugins')
             # mod = __import__(f"{modname}")
             if modname == 'ks':
-                import ks as mod
+                import plugins.ks as mod
             elif modname == 'pullvals':
-                import pullvals as mod
+                import plugins.pullvals as mod
             else:
                 continue
 

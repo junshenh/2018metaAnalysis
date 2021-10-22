@@ -5,7 +5,7 @@ import ROOT
 #from autodqm.plugin_results import PluginResults
 from plugin_results import PluginResults
 import numpy as np
-from pullvals import pull, maxPullNorm
+from plugins.pullvals import pull, maxPullNorm
 import scipy
 import scipy.stats
 
