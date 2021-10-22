@@ -4,8 +4,6 @@
 import ROOT
 #from autodqm.plugin_results import PluginResults
 from plugin_results import PluginResults
-from pullvals import pull
-import root_numpy
 import numpy as np
 from pullvals import pull, maxPullNorm
 import scipy
@@ -18,21 +16,14 @@ def comparators():
 
 
 def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
-    data_name = histpair.data_name
-    ref_name = histpair.ref_name
-
-
 
     data_hist = histpair.data_hist
     ref_hists_list = [x for x in histpair.ref_hists_list if x.values.sum() > 0]
-    nRef = len(ref_hists_list)
 
     # check for 1d hists and that refs are not empty
     if "1" not in str(type(data_hist)) :
         return None
 
-    
-    
     data_raw = data_hist.values
     ref_list_raw = np.array([x.values for x in ref_hists_list])
         
@@ -45,29 +36,22 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     ## outside if because need ref_norm_avg for nBinsUsed
     ref_list_norm = np.array([x*1/x.sum() for x in ref_list_raw])
     ref_norm_avg = ref_list_norm.mean(axis=0)
-    if is_good and nRef > 0:
-        ## calculate normalized ref and data arrays
-        
+    if is_good:
         data_norm = data_raw*1/data_raw.sum()
-        varR_norm = ref_list_norm.var(axis=0)
-        sumR = ref_list_norm.sum(axis=0)
-        
-        pulls = pull(data_norm, ref_norm_avg, data_hist_Entries, varR_norm, sumR, nRef)
-    else: 
-        pulls = np.zeros_like(data_raw)
+    else:
+        data_norm = data_raw
 
-    
+    pulls = pull(data_raw, ref_list_raw)
+
     ## only fuilled bins used for calculating chi2
-    nBinsUsed = np.count_nonzero(np.add(ref_norm_avg, data_raw)) 
+    nBinsUsed = np.count_nonzero(np.add(ref_list_raw.mean(axis=0), data_raw)) 
     chi2 = np.square(pulls).sum()
     max_pull = maxPullNorm(pulls, nBinsUsed).max()
     nBins = data_hist.numbins
     
     ks = scipy.stats.kstest(ref_norm_avg, data_norm)[0]
     
-    
     is_outlier = is_good and ks > ks_cut
-
 
     canv = None
     artifacts = [pulls]
@@ -89,135 +73,7 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
         artifacts=artifacts)
 
 #%%
-    data_hist_norm = np.copy(data_hist.values)
-    data_hist_Entries = np.sum(data_hist_norm)
-    ref_hist_Entries = np.mean(np.sum(ref_hists_list))
-
-
-    ## calculate the ref arrays 
-    ref_hist_arr = np.array(ref_hists_list)
-    ref_hist_norm = np.mean(ref_hist_arr, axis=0)
-    ref_hist_arr = np.array([x*ref_hist_norm.sum()/x.sum() if x.sum() > 0 else x for x in ref_hist_arr])
-    ref_hist_errs = np.std(ref_hist_arr, axis=0)
-
-    
-    ## data arrays
-    data_hist_scale = ref_hist_norm.sum()/data_hist_norm.sum()
-    data_hist_norm*=data_hist_scale
-    # data_hist_errs = np.sqrt(data_hist_norm*data_hist_scale)
-    data_hist_errs = np.nan_to_num(abs(np.array(scipy.stats.chi2.interval(0.6827, 2 * data_hist_norm)) / 2 - 1 - data_hist_norm))
-
-    # ks = data_hist.KolmogorovTest(ref_hist, "M")
-    ks = scipy.stats.kstest(ref_hist_norm, data_hist_norm)[0]
-
-    is_good = data_hist_Entries > 0
-    is_outlier = is_good and ks > ks_cut
-
-    # canv, artifacts = None, # draw_same(
-        #data_hist_norm, histpair.data_run, ref_hist_norm, histpair.ref_run)
-    
-
-    pull_cap = 25
-    ## chi2 and pull vals
-    max_pull = 0
-    nBins = 0
-    chi2 = 0
-    
-    nBinsUsed = np.count_nonzero(np.add(ref_hist_norm, data_hist_norm))
-    
-    pulls = np.zeros_like(ref_hist_norm)
-    #for i in range(1, data_hist.GetNbinsX() + 1):
-    for i in range(0, data_hist_norm.shape[0]):
-        # Bin 1 data
-        bin1 = data_hist_norm[i]
-
-        # Bin 2 data
-        bin2 = ref_hist_norm[i]#ref_hist.GetBinContent(i)
-
-        # Getting Proper Poisson error 
-        '''bin1err, bin2err = data_hist_errs[i], ref_hist_errs[i]'''
-        bin1err, bin2err = data_hist_errs[0, i], ref_hist_errs[i]
-        if bin1 < bin2:
-            bin1err, bin2err = data_hist_errs[1, i], ref_hist_errs[i]
-
-        # Count bins for chi2 calculation
-        nBins += 1
-
-        # Ensure that divide-by-zero error is not thrown when calculating pull
-        if bin1err == 0 and bin2err == 0:
-            new_pull = 0
-        else:
-            new_pull = pull(bin1, bin1err, bin2, bin2err)
-            #new_pull = maxPullNorm(new_pull, nBinsUsed)
-
-        # Sum pulls
-        chi2 += new_pull**2
-
-        # Check if max_pull
-        #max_pull = max(max_pull, abs(new_pull))
-        #max_pull = maxPullNorm(max_pull, nBinsUsed)
-
-
-        # Clamp the displayed value
-        # fill_val = max(min(new_pull, pull_cap), -pull_cap)
-        #fill_val = max_pull
-    
-        # If the input bins were explicitly empty, make this bin white by
-        # setting it out of range
-        ## why is this done????
-        #if bin1 == bin2 == 0:
-        #    fill_val = -999
-        
-        pulls[i] = new_pull
-        
-    # Compute chi2
-    if nBinsUsed > 0:
-        chi2 = (chi2 / nBinsUsed)
-        pulls = maxPullNorm(pulls, nBinsUsed)
-        max_pull = pulls.max()
-    else:
-        chi2=0
-        max_pull = 0 
-
-    
-    
-    
-    canv = None
-    artifacts = [pulls]
-
-    info = {
-        'Data_Entries': data_hist_Entries,
-        'Ref_Entries': ref_hist_Entries,
-        'KS_Val': ks,
-        'Chi_Squared' : chi2,
-        'Max_Pull_Val': max_pull,
-        'nBins' : nBins,
-        'pulls' : (pulls, data_hist.edges)
-    }
-
-    return PluginResults(
-        canv,
-        show=is_outlier,
-        info=info,
-        artifacts=artifacts)
-
-
-# def pull(bin1, binerr1, bin2, binerr2):
-#     ''' Calculate the pull value between two bins.
-#         pull = (data - expected)/sqrt(sum of errors in quadrature))
-#         data = |bin1 - bin2|, expected = 0
-#     '''
-#     ## changing to pull with tolerance
-#     # return (bin1 - bin2) / ((binerr1**2 + binerr2**2)**0.5)
-#     return np.abs(bin1 - bin2)/(np.sqrt(np.power(binerr1,2)+np.power(binerr2,2)+0.01*(bin1+bin2)))
-
-# def maxPullNorm(maxPull, nBinsUsed):
-#     prob = ROOT.TMath.Prob(np.power(maxPull, 2),1)
-#     probNorm = 1-np.power((1-prob),nBinsUsed)
-#     ## .9999999999999999 is the max that can go into chi2quantile
-#     val = (1-probNorm) 
-#     val = val if val < .9999999999999999 else .9999999999999999
-#     return np.sqrt(ROOT.TMath.ChisquareQuantile(val,1))
+  
 
 def draw_same(data_hist, data_run, ref_hist, ref_run):
     # Set up canvas
