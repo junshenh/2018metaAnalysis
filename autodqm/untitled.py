@@ -31,7 +31,7 @@ baserefdir = 'rootfiles/ref/'
 datadirs = [basedatadir + i for i in os.listdir(basedatadir)]
 refdirs = [baserefdir + i for i in os.listdir(baserefdir)]
 #datadirs = [baserefdir + i for i in os.listdir(baserefdir)]
-data_path = 'rootfiles/ref/DQM_V0001_L1T_R000320002.root'
+data_path = 'rootfiles/data/DQM_V0001_L1T_R000320008.root'
 ref_path = 'rootfiles/ref/DQM_V0001_L1T_R000320006.root'
 config_dir = '../config'
 subsystem = 'EMTF'
@@ -63,7 +63,7 @@ def getBinCenter(arr):
 def generateLabel(df, y, x):
     df = df.sort_values(by=[y], ascending=False)
     for col in df.columns: ## convert to float bc it breaks if int
-        if not isinstance(df[col][0], str):
+        if not isinstance(df[col].iloc[0], str):
             df[col] = df[col].astype(float)
     txtstr = '\n'.join((
                         f'{df["histnames"].iloc[0]} :({df[x].iloc[0]:.4}, {df[y].iloc[0]:.4})',
@@ -99,12 +99,10 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         logybins = ybins#np.logspace(ymin, ymax, xnbins, base=2)
         
         ## clip the bottoms so to include underflow 
-        # numpy.clip(a, a_min, a_max,
         xvals = np.clip(a = histdf[x], a_min = logxbins[0] , a_max = logxbins[-1])
         yvals = np.clip(a = histdf[y], a_min = logybins[0] , a_max = logybins[-1])
         
         counts, _, _ = np.histogram2d(xvals, yvals, bins=(logxbins, logybins))
-        #ax.hist2d(histdf[x], histdf[y], norm=mpl.colors.LogNorm(), bins=(xbins,ybins))
         ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm(), shading='auto')
         ax.set_xscale('log', base=2)
         ax.set_yscale('log', base=2)
@@ -114,7 +112,7 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
 
         ax.set_title(title)
         textstr = generateLabel(df=histdf, y=y, x=x)
-        ax.text(1.25*max(histdf[x]), logybins[15], textstr, bbox=props)
+        ax.text(1.25*max(histdf[x]), logybins[10], textstr, bbox=props)
         plt.savefig(f'{plotdir}/{plotname}-chi2.png', bbox_inches='tight')
         plt.show()
         plt.close(fig)
@@ -133,7 +131,13 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         maxval = ybins[-2]
         ytoplot = np.clip(histdf[y], a_min=0, a_max=maxval)
         
-        
+        ## remove “cscLCTStrip”, “cscLCTWire”, “cscChamberStrip”, “cscChamberWire”, “rpcChamberPhi”, “rpcChamberTheta”, “rpcHitPhi”, and “rpcHitTheta”
+        ## from pull scatter plots
+        if 'pull' in y: 
+            searchfor = ['cscLCTStrip', 'cscLCTWire', 'cscChamberStrip', 'cscChamberWire', 'rpcChamberPhi', 'rpcChamberTheta', 'rpcHitPhi', 'rpcHitTheta']
+
+            histdf = histdf[~histdf['histnames'].str.contains('|'.join(searchfor))]
+
         xvals = np.clip(a = histdf[x], a_min = logxbins[0] , a_max = logxbins[-1])
         yvals = np.clip(a = histdf[y], a_min = logybins[0] , a_max = logybins[-1])
         counts, _, _ = np.histogram2d(xvals, yvals, bins=(logxbins, logybins))
@@ -141,17 +145,11 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm(), shading='auto')
         ax.set_xscale('log', base=2)
         ax.set_yscale('log', base=2)
-        
-        #ybinlabels = ybins.astype(str)[::2]
-        #ybinlabels[-1] += '+'
-        # maxval = ybins[-2]
-        # ytoplot = np.clip(histdf[y], a_min=0, a_max=maxval)
-        # ax.hist2d(histdf[x], ytoplot, norm=mpl.colors.LogNorm(), bins=[xbins, ybins])
+
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         ax.set_title(title)
-        #ax.set_yticks(ybins[::2])
-        #ax.set_yticklabels(ybinlabels)
+
         textstr = generateLabel(df=histdf, y=y, x=x)
         ax.text(1.25*max(histdf[x]), logybins[9], textstr, bbox=props)
         plt.savefig(f'{plotdir}/{plotname}-chi2.png', bbox_inches='tight')
@@ -206,6 +204,7 @@ results = compare_hists.process(config_dir, subsystem,
 
 end = time.time()
 print('time taken: ', end-start)
+
 
 
 for result in results:
@@ -456,7 +455,10 @@ makePlot(histdf=hists2d, y='chi2', x='avgdata', ybins=chi22dBins,
 
 maxpullval = 8.292361075813595
 top5chi2 = hists2d.sort_values(by='chi2',ascending=False).histnames[:5].to_list()
-top5maxpull = hists2d.sort_values(by='maxpull',ascending=False).histnames[:5].to_list()
+
+searchfor = ['cscLCTStrip', 'cscLCTWire', 'cscChamberStrip', 'cscChamberWire', 'rpcChamberPhi', 'rpcChamberTheta', 'rpcHitPhi', 'rpcHitTheta']
+pullhist2d = hists2d[~hists2d['histnames'].str.contains('|'.join(searchfor))]
+top5maxpull = pullhist2d.sort_values(by='maxpull',ascending=False).histnames[:5].to_list()
 l = top5chi2 + top5maxpull
 
 for i,x in enumerate(histnames2d):
@@ -481,6 +483,10 @@ for i,x in enumerate(histnames2d):
 #%%    
 
 top5chi2 = hists1d.sort_values(by='chi2',ascending=False).histnames[:5].to_list()
+
+searchfor = ['cscLCTStrip', 'cscLCTWire', 'cscChamberStrip', 'cscChamberWire', 'rpcChamberPhi', 'rpcChamberTheta', 'rpcHitPhi', 'rpcHitTheta']
+pullhist1d = hists1d[~hists1d['histnames'].str.contains('|'.join(searchfor))]
+
 top5maxpull = hists1d.sort_values(by='maxpull',ascending=False).histnames[:5].to_list()
 l = top5chi2 + top5maxpull                                                                                                                 
 for i,x in enumerate(histnames1d):

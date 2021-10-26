@@ -255,16 +255,6 @@ def compile_histpairs(config_dir, subsystem,
                                          ref_runs_list, ref_hists_list)
                         histPairs.append(hPair)
 
-        
-        
-
-    # for i in histlist: 
-    #     for j in dqmhists:
-    #         if i in j: 
-    #             dqmhists.remove(i)
-
-    ## write out dqmhists to a file 
-
 
     return histPairs
 

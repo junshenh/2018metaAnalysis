@@ -27,7 +27,6 @@ def pullvals(histpair,
     data_raw = data_hist.values
     ref_list_raw = np.array([x.values for x in ref_hists_list])
         
-   
     ## num entries
     data_hist_Entries = np.sum(data_raw)
     ref_hist_Entries_avg = ref_list_raw.mean(axis=0).sum()
@@ -71,29 +70,44 @@ def pull(D_raw, R_list_raw):
     nRef = len(R_list_raw)
     if D_raw.sum() > 0 and nRef > 0: 
         R_norm_list = np.array([x*1/x.sum() for x in R_list_raw])
-        R_norm_avg = R_norm_list.mean(axis=0)
+        #R_norm_avg = R_norm_list.mean(axis=0)
         D_norm = D_raw*1/D_raw.sum()
         intD = D_raw.sum()
         varR_norm = R_norm_list.var(axis=0)
         sumR = R_list_raw.sum(axis=0)
         sumIntR = sumR.sum()
         
-    ## plan - declare array of case sumR_j == 0, then use it as an "out" array for np.divide
-    ##        to fill in places where the case sumR_j != 0 
-        out = D_raw * sumIntR / np.sqrt( intD * (intD + sumIntR) ) 
+        ## create 2 ref norm definition to avoid very high pulls due to ref being mostly zero
+        R_norm_avg_A = R_norm_list.mean(axis=0)
+        R_norm_avg_B = R_list_raw.sum(axis=0) / sumIntR
         
-        numerator = D_norm - R_norm_avg
-        denom1 = np.divide(R_norm_avg , intD)
-        denom2 = varR_norm
-        denom3 = np.divide(R_norm_avg*R_norm_avg, sumR, where=sumR!=0)
-        denom4 = 0.01*0.01*np.square(D_norm + R_norm_avg)
-        denominator = np.sqrt( denom1 + denom2 + denom3 + denom4 )
+        ## since i have to calculate the num and denom for pull twice, i will make it a function 
+        ## to avoid typos
+        pullA = calc_pull(sumIntR, intD, D_norm, R_norm_avg_A,  varR_norm, sumR, D_raw)
+        pullB = calc_pull(sumIntR, intD, D_norm, R_norm_avg_B,  varR_norm, sumR, D_raw)
         
-        pull = np.divide( numerator, denominator, out=out, where=R_norm_avg!=0)
+        #value = b if a > 10 else c
+        pull = pullA if (pullA*pullA).sum() < (pullB*pullB).sum() else pullB
+        
     else: 
         pull = np.zeros_like( D_raw )
     
     return pull
+    
+def calc_pull(sumIntR, intD, D_norm, R_norm_avg,  varR_norm, sumR, D_raw):
+    ## plan - declare array of case sumR_j == 0, then use it as an "out" array for np.divide
+    ## to fill in places where the case sumR_j != 0 
+    out = D_raw * sumIntR / np.sqrt( intD * (intD + sumIntR) ) 
+        
+    numerator = D_norm - R_norm_avg
+    denom1 = np.divide(R_norm_avg , intD)
+    denom2 = varR_norm
+    denom3 = np.divide(R_norm_avg*R_norm_avg, sumR, out = np.zeros_like(D_raw),where=sumR>0)
+    denom4 = 0.01*0.01*np.square(D_norm + R_norm_avg)
+
+    denominator = np.sqrt( denom1 + denom2 + denom3 + denom4 )
+    pull = np.divide( numerator, denominator, out=out, where=R_norm_avg!=0)
+    
     
     
 def maxPullNorm(maxPull, nBinsUsed):
