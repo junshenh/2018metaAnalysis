@@ -4,6 +4,7 @@ import numpy as np
 import uproot
 import scipy
 import scipy.stats
+from binomProbs import calc_pull_A, calc_pull_B
 
 def comparators():
     return {
@@ -24,8 +25,8 @@ def pullvals(histpair,
         return None
 
 
-    data_raw = data_hist.values
-    ref_list_raw = np.array([x.values for x in ref_hists_list])
+    data_raw = np.float64(data_hist.values)
+    ref_list_raw = np.array([np.float64(x.values) for x in ref_hists_list])
         
     ## num entries
     data_hist_Entries = np.sum(data_raw)
@@ -34,13 +35,16 @@ def pullvals(histpair,
     # Reject empty histograms
     is_good = data_hist_Entries != 0
 
-    pulls = pull(data_raw, ref_list_raw)
 
+    pulls = pull(data_raw, ref_list_raw)
+    
+    
     ## only fuilled bins used for calculating chi2
     nBinsUsed = np.count_nonzero(np.add(ref_list_raw.mean(axis=0), data_raw)) 
     chi2 = np.square(pulls).sum()/nBinsUsed if nBinsUsed > 0 else 0
-    max_pull = maxPullNorm(pulls, nBinsUsed).max()
+    max_pull = pulls.max() #maxPullNorm(pulls, nBinsUsed).max()
     nBins = data_hist.numbins
+    #pulls = maxPullNorm(pulls, nBinsUsed)    
     
     info = {
         'Chi_Squared': chi2,
@@ -68,26 +72,29 @@ def pullvals(histpair,
 def pull(D_raw, R_list_raw):
     ## plan, do all D_norm, R_norm_avg etc. calculations here so that 1d hists also have the same def without need of copy paste
     nRef = len(R_list_raw)
+    tol = 0.01
     if D_raw.sum() > 0 and nRef > 0: 
-        R_norm_list = np.array([x*1/x.sum() for x in R_list_raw])
+        # R_norm_list = np.array([x*1/x.sum() for x in R_list_raw])
         #R_norm_avg = R_norm_list.mean(axis=0)
-        D_norm = D_raw*1/D_raw.sum()
-        intD = D_raw.sum()
-        varR_norm = R_norm_list.var(axis=0)
-        sumR = R_list_raw.sum(axis=0)
-        sumIntR = sumR.sum()
+        # D_norm = D_raw*1/D_raw.sum()
+        # intD = D_raw.sum()
+        # varR_norm = R_norm_list.var(axis=0)
+        # sumR = R_list_raw.sum(axis=0)
+        # sumIntR = sumR.sum()
         
         ## create 2 ref norm definition to avoid very high pulls due to ref being mostly zero
-        R_norm_avg_A = R_norm_list.mean(axis=0)
-        R_norm_avg_B = R_list_raw.sum(axis=0) / sumIntR
+        # R_norm_avg_A = R_norm_list.mean(axis=0)
+        # R_norm_avg_B = R_list_raw.sum(axis=0) / sumIntR
         
         ## since i have to calculate the num and denom for pull twice, i will make it a function 
         ## to avoid typos
-        pullA = calc_pull(sumIntR, intD, D_norm, R_norm_avg_A,  varR_norm, sumR, D_raw)
-        pullB = calc_pull(sumIntR, intD, D_norm, R_norm_avg_B,  varR_norm, sumR, D_raw)
+        pullA = calc_pull_A(D_raw, R_list_raw, tol) #calc_pull(sumIntR, intD, D_norm, R_norm_avg_A,  varR_norm, sumR, D_raw)
+        pullB = calc_pull_B(D_raw, R_list_raw, tol) #calc_pull(sumIntR, intD, D_norm, R_norm_avg_B,  varR_norm, sumR, D_raw)
         
         #value = b if a > 10 else c
         pull = pullA if (pullA*pullA).sum() < (pullB*pullB).sum() else pullB
+        
+        
         
     else: 
         pull = np.zeros_like( D_raw )
@@ -107,6 +114,7 @@ def calc_pull(sumIntR, intD, D_norm, R_norm_avg,  varR_norm, sumR, D_raw):
 
     denominator = np.sqrt( denom1 + denom2 + denom3 + denom4 )
     pull = np.divide( numerator, denominator, out=out, where=R_norm_avg!=0)
+    return pull
     
     
     

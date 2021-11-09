@@ -1,8 +1,8 @@
 {
   "main_gdir": "DQMData/Run {0}/L1T/Run summary/L1TStage2EMTF/",
   "hists": [
-        {"path": "CSCInput/csc*"},
-      {"path": "RPCInput/rpc*"},
+    {"path": "CSCInput/csc*"},
+    {"path": "RPCInput/rpc*"},
     {"path": "cscDQMOccupancy",
       "norm_type": "row",
       "always_show": true},
@@ -18,7 +18,9 @@
     {"path" : "cscLCTOccupancy"},
     {"path" : "emtfTrackBX"},
     {"path" : "emtfTrackOccupancy"},
-    {"path" : "emtfTrackPhiHighQuality"}
+    {"path" : "emtfTrackPhiHighQuality"},
+    {"path": "cscDQMOccupancy"},
+    {"path": "Timing/cscLCTTiming*"}
 
   ]
 }

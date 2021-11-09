@@ -273,12 +273,12 @@ def load_comparators(plugin_dir):
         if modname[-3:] == '.py':
             modname = modname[:-3]
         try:
-            #sys.path.append('/home/chosila/Projects/2018metaAnalysis/plugins')
+            sys.path.append('/home/chosila/Projects/metaAnalysis/plugins')
             # mod = __import__(f"{modname}")
             if modname == 'ks':
-                import plugins.ks as mod
+                import ks as mod
             elif modname == 'pullvals':
-                import plugins.pullvals as mod
+                import pullvals as mod
             else:
                 continue
 
