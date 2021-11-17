@@ -36,12 +36,16 @@ def calc_pull(D_raw, R_list_raw, tol, optAB):
         probHi += wgt_AB * sci.betabinom.sf(D_raw-1, intD, R_list_raw_tol[iRef] + 1, intR_list_tol[iRef] - R_list_raw_tol[iRef] + 1)
         probLo += wgt_AB * sci.betabinom.cdf(D_raw,  intD, R_list_raw_tol[iRef] + 1, intR_list_tol[iRef] - R_list_raw_tol[iRef] + 1)
 
+
     ## For each bin, take the lower probability (i.e. the one that is < 50%)
     prob = probLo
     condition = probHi < probLo
     prob[condition] = probHi[condition]
 
-    prob *= 2  ## Multiply by 2 for 2-sided probability    
+    prob *= 2  ## Multiply by 2 for 2-sided probability  
+    prob = np.clip(prob, a_max=1, a_min=None)
+    
+    
     pull = calcPull(prob)
     
     return pull

@@ -4,7 +4,7 @@ import numpy as np
 import uproot
 import scipy
 import scipy.stats
-from binomProbs import calc_pull_A, calc_pull_B
+from binomProbs import calc_pull
 
 def comparators():
     return {
@@ -88,8 +88,8 @@ def pull(D_raw, R_list_raw):
         
         ## since i have to calculate the num and denom for pull twice, i will make it a function 
         ## to avoid typos
-        pullA = calc_pull_A(D_raw, R_list_raw, tol) #calc_pull(sumIntR, intD, D_norm, R_norm_avg_A,  varR_norm, sumR, D_raw)
-        pullB = calc_pull_B(D_raw, R_list_raw, tol) #calc_pull(sumIntR, intD, D_norm, R_norm_avg_B,  varR_norm, sumR, D_raw)
+        pullA = calc_pull(D_raw, R_list_raw, tol, 'A') #calc_pull(sumIntR, intD, D_norm, R_norm_avg_A,  varR_norm, sumR, D_raw)
+        pullB = calc_pull(D_raw, R_list_raw, tol, 'B') #calc_pull(sumIntR, intD, D_norm, R_norm_avg_B,  varR_norm, sumR, D_raw)
         
         #value = b if a > 10 else c
         pull = pullA if (pullA*pullA).sum() < (pullB*pullB).sum() else pullB
@@ -101,6 +101,7 @@ def pull(D_raw, R_list_raw):
     
     return pull
     
+'''
 def calc_pull(sumIntR, intD, D_norm, R_norm_avg,  varR_norm, sumR, D_raw):
     ## plan - declare array of case sumR_j == 0, then use it as an "out" array for np.divide
     ## to fill in places where the case sumR_j != 0 
@@ -115,7 +116,7 @@ def calc_pull(sumIntR, intD, D_norm, R_norm_avg,  varR_norm, sumR, D_raw):
     denominator = np.sqrt( denom1 + denom2 + denom3 + denom4 )
     pull = np.divide( numerator, denominator, out=out, where=R_norm_avg!=0)
     return pull
-    
+ '''   
     
     
 def maxPullNorm(maxPull, nBinsUsed):
