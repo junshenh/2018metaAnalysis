@@ -20,8 +20,8 @@ def calc_pull(D_raw, R_list_raw, tol, optAB):
     scaleTol = pow(1 + pow(R_list_raw * tol**2, 2), -0.5)  ## 2D array of scaling factors, nRef x nBins
     ## Multiply along only the first axis: see https://stackoverflow.com/questions/49435353/numpy-multiply-arbitrary-shape-array-along-first-axis
     intR_list_tol = (scaleTol.T * intR_list).T 
-    R_list_raw_tol = R_list_raw * scaleTol  ## 2D array of scaled number of entries per ref hist bin
 
+    R_list_raw_tol = R_list_raw * scaleTol  ## 2D array of scaled number of entries per ref hist bin
 
     ## Initialize arrays probHi and probLo with same dimensions as D_raw, values all 0
     probHi = np.zeros_like(D_raw)
@@ -36,7 +36,6 @@ def calc_pull(D_raw, R_list_raw, tol, optAB):
         probHi += wgt_AB * sci.betabinom.sf(D_raw-1, intD, R_list_raw_tol[iRef] + 1, intR_list_tol[iRef] - R_list_raw_tol[iRef] + 1)
         probLo += wgt_AB * sci.betabinom.cdf(D_raw,  intD, R_list_raw_tol[iRef] + 1, intR_list_tol[iRef] - R_list_raw_tol[iRef] + 1)
 
-
     ## For each bin, take the lower probability (i.e. the one that is < 50%)
     prob = probLo
     condition = probHi < probLo
@@ -44,8 +43,7 @@ def calc_pull(D_raw, R_list_raw, tol, optAB):
 
     prob *= 2  ## Multiply by 2 for 2-sided probability  
     prob = np.clip(prob, a_max=1, a_min=None)
-    
-    
+
     pull = calcPull(prob)
     
     return pull
@@ -56,3 +54,4 @@ def calcPull(prob):
     pull = np.sqrt(scipy.stats.chi2.ppf(1-prob,1)) ## convert to pull value
         
     return pull
+

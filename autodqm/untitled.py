@@ -11,48 +11,50 @@ import importlib.util
 spec = importlib.util.spec_from_file_location('compare_hists', '/home/chosila/Projects/metaAnalysis/autodqm/compare_hists.py')
 compare_hists = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(compare_hists)
-import ROOT
 import pickle
-import root_numpy
 import matplotlib.pyplot as plt
 import os
 import numpy as np
 import matplotlib as mpl
 import compare_hists
 import pandas as pd
+import time 
+import json
 
+
+## read the datafile and reffiles from a json 
+datadict = json.load(open('datadict.json'))
 
 condition = '' 
 
-plt.tight_layout()
-'https://cmsweb.cern.ch/dqm/offline/data/browse/ROOT/OnlineData/original/00032xxxx/0003200xx/'
-basedatadir = 'rootfiles/data/'
-baserefdir = 'rootfiles/ref/'
-datadirs = [basedatadir + i for i in os.listdir(basedatadir)]
-refdirs = [baserefdir + i for i in os.listdir(baserefdir)]
-#datadirs = [baserefdir + i for i in os.listdir(baserefdir)]
-data_path = 'rootfiles/ref/DQM_V0001_L1T_R000320002.root'
-ref_path = 'rootfiles/ref/DQM_V0001_L1T_R000320006.root'
+# plt.tight_layout()
+# 'https://cmsweb.cern.ch/dqm/offline/data/browse/ROOT/OnlineData/original/00032xxxx/0003200xx/'
+# basedatadir = 'rootfiles/data/'
+# baserefdir = 'rootfiles/ref/'
+# datadirs = [basedatadir + i for i in os.listdir(basedatadir)]
+# refdirs = [baserefdir + i for i in os.listdir(baserefdir)]
+# #datadirs = [baserefdir + i for i in os.listdir(baserefdir)]
+# data_path = 'rootfiles/ref/DQM_V0001_L1T_R000320002.root'
+# #ref_path = 'rootfiles/ref/DQM_V0001_L1T_R000320006.root'
 config_dir = '../config'
 subsystem = 'EMTF'
 data_series = 'Run2018'
 data_sample = 'L1T'
-dataruns = [i[-11:-5] for i in datadirs]
-data_run = data_path[-11:-5]
+# #dataruns = [i[-11:-5] for i in datadirs]
+# data_run = data_path[-11:-5]
 ref_series = 'Run2018'
 ref_sample = 'L1T'
-refruns = [i[-11:-5] for i in refdirs]
-ref_run = ref_path[-11:-5]
-ref_runs_list = [319756, 319849, 319853, 319854, 319910, 319915, 319941, 319991, 319992, 319993]
-ref_list = [f'rootfiles/ref/DQM_V0001_L1T_R000{x}.root' for x in ref_runs_list]
+# #refruns = [i[-11:-5] for i in refdirs]
+# #ref_run = ref_path[-11:-5]
+# ref_runs_list = [319756, 319849, 319853, 319854, 319910, 319915, 319941, 319991, 319992, 319993]
+# ref_list = [f'rootfiles/ref/DQM_V0001_L1T_R000{x}.root' for x in ref_runs_list]
 
 ynbins = 20
 xnbins = 20
 props = dict(boxstyle='round', facecolor='white')
-plotdir = f'plots/data{data_run[-2:]}'
+plotdir = f'plots/combination'
 
-
-loadpkl = False
+#loadpkl = False
 
 def getBinCenter(arr):
     arrCen = list()
@@ -99,13 +101,14 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         logybins = ybins#np.logspace(ymin, ymax, xnbins, base=2)
         
         ## clip the bottoms so to include underflow 
+        ## this was needed for log-binning but no longer needed but shouldnt affect anything.
         xvals = np.clip(a = histdf[x], a_min = logxbins[0] , a_max = logxbins[-1])
         yvals = np.clip(a = histdf[y], a_min = logybins[0] , a_max = logybins[-1])
         
         counts, _, _ = np.histogram2d(xvals, yvals, bins=(logxbins, logybins))
         ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm(), shading='auto')
         ax.set_xscale('log', base=2)
-        ax.set_yscale('log', base=2)
+        # ax.set_yscale('log', base=2)
 
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
@@ -128,8 +131,8 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         #ymin, ymax = np.log2(2**-10), np.log2(max(histdf[y]))
         logxbins = np.logspace(xmin, xmax, xnbins, base=2)
         logybins = ybins#np.logspace(ymin, ymax, xnbins, base=2)
-        maxval = ybins[-2]
-        ytoplot = np.clip(histdf[y], a_min=0, a_max=maxval)
+        #maxval = ybins[-2]
+        #ytoplot = np.clip(histdf[y], a_min=0, a_max=maxval)
         
         ## remove “cscLCTStrip”, “cscLCTWire”, “cscChamberStrip”, “cscChamberWire”, “rpcChamberPhi”, “rpcChamberTheta”, “rpcHitPhi”, and “rpcHitTheta”
         ## from pull scatter plots
@@ -144,7 +147,7 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         
         ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm(), shading='auto')
         ax.set_xscale('log', base=2)
-        ax.set_yscale('log', base=2)
+        # ax.set_yscale('log', base=2)
 
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
@@ -191,95 +194,103 @@ pulls2d = list()
 # else:
 #     results = pickle.load(open('out/results.pkl', 'rb'))
 
-data_run = data_path[-11:-5]
-print(f'ref path: {ref_path}')
-print(f'data path: {data_path}')
-import time
+#data_run = data_path[-11:-5]
+#print(f'ref path: {ref_path}')
+#print(f'data path: {data_path}')
+
+resultslist = []
+datarunlist = []
 start = time.time()
-results = compare_hists.process(config_dir, subsystem,
-                                data_series, data_sample, data_run, data_path,
-                                ref_series, ref_sample, ref_run, ref_path,
-                                ref_list, ref_runs_list,
-                                output_dir='./out/', plugin_dir='/home/chosila/Projects/metaAnalysis/plugins')
-
+for data_path in datadict:
+    data_run = data_path[-11:-5]
+    datarunlist.append(data_run)
+    ref_list = datadict[data_path]
+    ref_runs_list = [i[-11:-5] for i in ref_list]
+    ref_path = data_path
+    ref_run = data_run
+    resultslist.append(compare_hists.process(config_dir, subsystem,
+                                    data_series, data_sample, data_run, data_path,
+                                    ref_series, ref_sample, ref_run, ref_path,
+                                    ref_list, ref_runs_list,
+                                    output_dir='./out/', plugin_dir='/home/chosila/Projects/metaAnalysis/plugins'))
 end = time.time()
-print('time taken: ', end-start)
+print('time taken: ', end - start)
 
-
-
-for result in results:
-    hists = result['hists']
-    for hist in hists:
-        #histarr, histedge = hists# root_numpy.hist2array(hist, return_edges=True)#, include_overflow=True)
-        if len(hist.shape) == 2:#hist.InheritsFrom('TH2'):
-            #h2d.append([histarr, histedge])
-            #x = getBinCenter(histedge[0])
-            #y = getBinCenter(histedge[1])
-            histnames2d.append(result['name'])
-            run2d.append(f"d{result['id'][40:46]}; r{result['id'][17:23]}")
-
-            #------------------ pull values vs nbins ------------------
-
-            hist2dnbins.append(hist.shape[0]*hist.shape[1])
-            maxpulls.append(result['info']['Max_Pull_Val'])
-
-            #-------------------------------------------------------------
-
-            #--------------------- pv vs nevents ------------------------------
-
-            nevents2ddata.append(result['info']['Data_Entries'])
-            nevents2dref.append(result['info']['Ref_Entries'])
-
-            #-------------------------------------------------------------
-
-
-            #------------------------ chi2 ------------------------------------
-
-            chi22d.append(result['info']['Chi_Squared'])
-
-            #----------------------------------------------------------------
-            
-            #--------------------------- nbinsUsed ----------------------------
-            nBinsUsed.append(result['info']['nBinsUsed'])
-            pulls2d.append(result['info']['new_pulls'])
-            #------------------------------------------------------------------
-            
-
-        elif len(hist.shape) == 1: #hist.InheritsFrom('TH1'):
-            ## have to make this plot both the data and ref
-            ## looks like it returns the data first, but autodqm plots it second. this
-            ## doesn't really matter, just documenting
-            
-            #histedge = histedge[0]
-            #barval = getBinCenter(histedge)
-            histnames1d.append(result['name'])
-            run1d.append(f"d{result['id'][40:46]}; r{result['id'][17:23]}")
-
-
-            #------------------------ ks vs nbins ------------------------
-
-            hist1dnbins.append(hist.shape[0])
-            kss.append(result['info']['KS_Val'])
-
-            #-------------------------------------------------------------
-
-            #------------------------ ks vs nevents ------------------------
-
-            nevents1ddata.append(result['info']['Data_Entries'])
-            nevents1dref.append(result['info']['Ref_Entries'])
-
-            #-------------------------------------------------------------
-
-            #--------------------------- chi2& max pull ----------------------
-
-            chi21d.append(result['info']['Chi_Squared'])
-            maxpull1d.append(result['info']['Max_Pull_Val'])
-
-            #----------------------------------------------------------------
-
-            #-----------------------pulls------------------------------------
-            pulls1d.append(result['info']['pulls'])
-            #----------------------------------------------------------------
+for i,results in enumerate(resultslist):
+    run = datarunlist[i]
+    for result in results:
+        hists = result['hists']
+        for hist in hists:
+            #histarr, histedge = hists# root_numpy.hist2array(hist, return_edges=True)#, include_overflow=True)
+            if len(hist.shape) == 2:#hist.InheritsFrom('TH2'):
+                #h2d.append([histarr, histedge])
+                #x = getBinCenter(histedge[0])
+                #y = getBinCenter(histedge[1])
+                histnames2d.append(result['name'])
+                run2d.append(run)
+    
+                #------------------ pull values vs nbins ------------------
+    
+                hist2dnbins.append(hist.shape[0]*hist.shape[1])
+                maxpulls.append(result['info']['Max_Pull_Val'])
+    
+                #-------------------------------------------------------------
+    
+                #--------------------- pv vs nevents ------------------------------
+    
+                nevents2ddata.append(result['info']['Data_Entries'])
+                nevents2dref.append(result['info']['Ref_Entries'])
+    
+                #-------------------------------------------------------------
+    
+    
+                #------------------------ chi2 ------------------------------------
+    
+                chi22d.append(result['info']['Chi_Squared'])
+    
+                #----------------------------------------------------------------
+                
+                #--------------------------- nbinsUsed ----------------------------
+                nBinsUsed.append(result['info']['nBinsUsed'])
+                pulls2d.append(result['info']['new_pulls'])
+                #------------------------------------------------------------------
+                
+    
+            elif len(hist.shape) == 1: #hist.InheritsFrom('TH1'):
+                ## have to make this plot both the data and ref
+                ## looks like it returns the data first, but autodqm plots it second. this
+                ## doesn't really matter, just documenting
+                
+                #histedge = histedge[0]
+                #barval = getBinCenter(histedge)
+                histnames1d.append(result['name'])
+                run1d.append(run)
+    
+    
+                #------------------------ ks vs nbins ------------------------
+    
+                hist1dnbins.append(hist.shape[0])
+                kss.append(result['info']['KS_Val'])
+    
+                #-------------------------------------------------------------
+    
+                #------------------------ ks vs nevents ------------------------
+    
+                nevents1ddata.append(result['info']['Data_Entries'])
+                nevents1dref.append(result['info']['Ref_Entries'])
+    
+                #-------------------------------------------------------------
+    
+                #--------------------------- chi2& max pull ----------------------
+    
+                chi21d.append(result['info']['Chi_Squared'])
+                maxpull1d.append(result['info']['Max_Pull_Val'])
+    
+                #----------------------------------------------------------------
+    
+                #-----------------------pulls------------------------------------
+                pulls1d.append(result['info']['pulls'])
+                #----------------------------------------------------------------
 
     
 #------------------------- make pd of info, easy to mannip ------------------
@@ -321,26 +332,24 @@ hists2d = hists2d.assign(avgref = np.divide(nevents2dref, hist2dnbins, out = np.
 hists2d = hists2d.assign(chi2 = chi22d)
 
 
-import os
-
 os.makedirs(plotdir, exist_ok=True)
 
 
-maxpull1d_max = np.log2(2**3.1)#21
-maxpull1d_min = np.log2(2**-10)
-maxpull2d_max = np.log2(2**3.1)#10.5
-maxpull2d_min = np.log2(2**-10)
-chi21d_max = np.log2(2**7)#50
-chi21d_min = np.log2(2**-4)
-chi22d_max = np.log2(2**7)#100
-chi22d_min = np.log2(2**-4)
+maxpull1d_max = 10#np.log2(2**3.1)#21
+maxpull1d_min = 0#np.log2(2**-10)
+maxpull2d_max = 10#np.log2(2**3.1)#10.5
+maxpull2d_min = 0#np.log2(2**-10)
+chi21d_max = 15#np.log2(2**7)#50
+chi21d_min = 0#np.log2(2**-4)
+chi22d_max = 15#np.log2(2**7)#100
+chi22d_min = 0#np.log2(2**-4)
 
 
-ksBins = np.logspace(np.log2(2**-3), np.log2(1), 20)
-maxpull1dBins = np.logspace(maxpull1d_min, maxpull1d_max, ynbins, base=2)
-maxpull2dBins = np.logspace(maxpull2d_min, maxpull2d_max, ynbins, base=2)
-chi21dBins = np.logspace(chi21d_min, chi21d_max, ynbins, base=2)
-chi22dBins = np.logspace(chi22d_min, chi22d_max, ynbins, base=2)
+ksBins = np.linspace(0, 1, ynbins)#np.logspace(np.log2(2**-3), np.log2(1), 20)
+maxpull1dBins = np.linspace(maxpull1d_min, maxpull1d_max, ynbins)#np.logspace(maxpull1d_min, maxpull1d_max, ynbins, base=2)
+maxpull2dBins = np.linspace(maxpull2d_min, maxpull2d_max, ynbins)#np.logspace(maxpull2d_min, maxpull2d_max, ynbins, base=2)
+chi21dBins = np.linspace(chi21d_min, chi22d_max, ynbins)#np.logspace(chi21d_min, chi21d_max, ynbins, base=2)
+chi22dBins = np.linspace(chi22d_min, chi22d_max, ynbins)#np.logspace(chi22d_min, chi22d_max, ynbins, base=2)
 
 #%%
 #------------------------------ ks/pv/chi2 vs nbins ------------------------------
@@ -453,73 +462,6 @@ makePlot(histdf=hists2d, y='chi2', x='avgdata', ybins=chi22dBins,
 
 #%%
 
-maxpullval = 9#8.292361075813595
-minpullval = 0 
-
-# colorbar
-colors = ['#d0e5d2', '#b84323']#['#1e28e9','#d0e5d2', '#b84323'] 
-cmap = mpl.colors.LinearSegmentedColormap.from_list('autodqm scheme', colors, N = 255)
-
-
-
-top5chi2 = hists2d.sort_values(by='chi2',ascending=False).histnames[:5].to_list()
-
-searchfor = ['cscLCTStrip', 'cscLCTWire', 'cscChamberStrip', 'cscChamberWire', 'rpcChamberPhi', 'rpcChamberTheta', 'rpcHitPhi', 'rpcHitTheta']
-pullhist2d = hists2d[~hists2d['histnames'].str.contains('|'.join(searchfor))]
-top5maxpull = pullhist2d.sort_values(by='maxpull',ascending=False).histnames[:5].to_list()
-l = ['emtfTrackOccupancy',   'cscLCTTimingBX0', 'cscDQMOccupancy']
-l = top5chi2 + top5maxpull + l
-
-for i,x in enumerate(histnames2d):
-    # check if anything in l is in histname2d
-    if any(substring in x for substring in l):
-        histvals = pulls2d[i][0]
-        histedges = pulls2d[i][1]
-        xedges = getBinCenter(histedges[0])
-        yedges = getBinCenter(histedges[1])
-        fig, ax = plt.subplots()
-        norm = mpl.colors.Normalize(vmin=minpullval, vmax=maxpullval)
-        im = ax.pcolormesh(xedges, yedges, histvals.T, cmap=cmap, shading='auto', norm=norm)
-        fig.colorbar(im)
-        ax.set_title(x+condition)
-        #os.makedirs(f'{plotdir}/pulls2d', exist_ok=True)
-        fig.savefig(f'{plotdir}/{x}{condition}.png', bbox_inches='tight') #'pulls2d/{x}-chi2.png', bbox_inches='tight')
-        plt.show()
-        plt.close('all')
-
-        
-#%%
-
-top5chi2 = hists1d.sort_values(by='chi2',ascending=False).histnames[:5].to_list()
-
-searchfor = ['cscLCTStrip', 'cscLCTWire', 'cscChamberStrip', 'cscChamberWire', 'rpcChamberPhi', 'rpcChamberTheta', 'rpcHitPhi', 'rpcHitTheta']
-pullhist1d = hists1d[~hists1d['histnames'].str.contains('|'.join(searchfor))]
-
-top5maxpull = hists1d.sort_values(by='maxpull',ascending=False).histnames[:5].to_list()
-l = top5chi2 + top5maxpull                                                                                                                 
-for i,x in enumerate(histnames1d):
-    if any(substring in x for substring in l):
-        histvals = pulls1d[i][0]
-        histedge = pulls1d[i][1]
-        xedges = getBinCenter(histedge)
-        width = histedge[1] - histedge[0]
-        fig, ax = plt.subplots()
-        ax.bar(xedges, histvals, width)
-        ax.set_title(x+condition)
-        ax.set_ylim([minpullval, maxpullval])
-        #os.makedirs(f'{plotdir}/pulls1d', exist_ok=True)
-        fig.savefig(f'{plotdir}/{x}{condition}.png', bbox_inches='tight')#pulls1d/{x}-chi2.png', bbox_inches='tight')
-        plt.show()
-        plt.close('all')
-        
-        
-#%%
-
-
-
-
-        
-#%%
 print(f'maxpull1d: {max(maxpull1d)}, quantile: {np.quantile(maxpull1d, .95)}')
 print(f'chi21d: {max(chi21d)}, quantile: {np.quantile(chi21d, .95)}')
 print(f'maxpull2d: {max(maxpulls)}, quantile: {np.quantile(maxpulls, .95)}')
@@ -530,3 +472,75 @@ maxpulls.sort()
 chi21d.sort()
 chi22d.sort()
 nBinsUsed.sort()
+#%%
+## heat maps pull and bar pull 
+
+if False:
+    maxpullval = 9#8.292361075813595
+    minpullval = 0 
+    
+    # colorbar
+    colors = ['#d0e5d2', '#b84323']#['#1e28e9','#d0e5d2', '#b84323'] 
+    cmap = mpl.colors.LinearSegmentedColormap.from_list('autodqm scheme', colors, N = 255)
+    
+    
+    
+    top5chi2 = hists2d.sort_values(by='chi2',ascending=False).histnames[:5].to_list()
+    
+    searchfor = ['cscLCTStrip', 'cscLCTWire', 'cscChamberStrip', 'cscChamberWire', 'rpcChamberPhi', 'rpcChamberTheta', 'rpcHitPhi', 'rpcHitTheta']
+    pullhist2d = hists2d[~hists2d['histnames'].str.contains('|'.join(searchfor))]
+    top5maxpull = pullhist2d.sort_values(by='maxpull',ascending=False).histnames[:5].to_list()
+    l = ['emtfTrackOccupancy',   'cscLCTTimingBX0', 'cscDQMOccupancy']
+    l = top5chi2 + top5maxpull + l
+    
+    for i,x in enumerate(histnames2d):
+        # check if anything in l is in histname2d
+        if any(substring in x for substring in l):
+            histvals = pulls2d[i][0]
+            histedges = pulls2d[i][1]
+            xedges = getBinCenter(histedges[0])
+            yedges = getBinCenter(histedges[1])
+            fig, ax = plt.subplots()
+            norm = mpl.colors.Normalize(vmin=minpullval, vmax=maxpullval)
+            im = ax.pcolormesh(xedges, yedges, histvals.T, cmap=cmap, shading='auto', norm=norm)
+            fig.colorbar(im)
+            ax.set_title(x+condition)
+            #os.makedirs(f'{plotdir}/pulls2d', exist_ok=True)
+            fig.savefig(f'{plotdir}/{x}{condition}.png', bbox_inches='tight') #'pulls2d/{x}-chi2.png', bbox_inches='tight')
+            plt.show()
+            plt.close('all')
+    
+            
+    #%%
+    
+    top5chi2 = hists1d.sort_values(by='chi2',ascending=False).histnames[:5].to_list()
+    
+    searchfor = ['cscLCTStrip', 'cscLCTWire', 'cscChamberStrip', 'cscChamberWire', 'rpcChamberPhi', 'rpcChamberTheta', 'rpcHitPhi', 'rpcHitTheta']
+    pullhist1d = hists1d[~hists1d['histnames'].str.contains('|'.join(searchfor))]
+    
+    top5maxpull = hists1d.sort_values(by='maxpull',ascending=False).histnames[:5].to_list()
+    l = top5chi2 + top5maxpull                                                                                                                 
+    for i,x in enumerate(histnames1d):
+        if any(substring in x for substring in l):
+            histvals = pulls1d[i][0]
+            histedge = pulls1d[i][1]
+            xedges = getBinCenter(histedge)
+            width = histedge[1] - histedge[0]
+            fig, ax = plt.subplots()
+            ax.bar(xedges, histvals, width)
+            ax.set_title(x+condition)
+            ax.set_ylim([minpullval, maxpullval])
+            #os.makedirs(f'{plotdir}/pulls1d', exist_ok=True)
+            fig.savefig(f'{plotdir}/{x}{condition}.png', bbox_inches='tight')#pulls1d/{x}-chi2.png', bbox_inches='tight')
+            plt.show()
+            plt.close('all')
+            
+            
+    #%%
+    
+    
+    
+    
+            
+    #%%
+    

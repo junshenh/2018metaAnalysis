@@ -33,11 +33,12 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     
     is_good = data_hist_Entries > 0
     
-    ## outside if because need ref_norm_avg for nBinsUsed
-    ref_list_norm = np.array([x*1/x.sum() for x in ref_list_raw])
+    ## looks like bigger values result in ks test working a little better  
+    ref_list_norm = np.array(ref_list_raw)#np.array([x*1/x.sum() for x in ref_list_raw])
     ref_norm_avg = ref_list_norm.mean(axis=0)
-    if is_good:
-        data_norm = data_raw*1/data_raw.sum()
+    
+    if is_good: 
+        data_norm = data_raw * ref_norm_avg.sum()/data_raw.sum()
     else:
         data_norm = data_raw
     
@@ -47,7 +48,7 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     ## only fuilled bins used for calculating chi2
     nBinsUsed = np.count_nonzero(np.add(ref_list_raw.mean(axis=0), data_raw)) 
     chi2 = np.square(pulls).sum()/nBinsUsed if nBinsUsed > 0 else 0
-    max_pull = pulls.max()#maxPullNorm(pulls, nBinsUsed).max()
+    max_pull = maxPullNorm(pulls, nBinsUsed).max()
     nBins = data_hist.numbins
     
     ks = scipy.stats.kstest(ref_norm_avg, data_norm)[0]

@@ -42,7 +42,7 @@ def pullvals(histpair,
     ## only fuilled bins used for calculating chi2
     nBinsUsed = np.count_nonzero(np.add(ref_list_raw.mean(axis=0), data_raw)) 
     chi2 = np.square(pulls).sum()/nBinsUsed if nBinsUsed > 0 else 0
-    max_pull = pulls.max() #maxPullNorm(pulls, nBinsUsed).max()
+    max_pull = maxPullNorm(pulls, nBinsUsed).max()
     nBins = data_hist.numbins
     #pulls = maxPullNorm(pulls, nBinsUsed)    
     
@@ -93,6 +93,31 @@ def pull(D_raw, R_list_raw):
         
         #value = b if a > 10 else c
         pull = pullA if (pullA*pullA).sum() < (pullB*pullB).sum() else pullB
+        
+        
+        
+        #------------------------------------------------------------------------
+        '''amax = np.argmax(pull) #np.unravel_index(np.argmax(pull), pull.shape) #
+        print('amax: ', amax)
+        print('pull: ', pull[amax])
+        print('D_raw: ', D_raw[amax])
+        print('R_raw: ',  R_list_raw[:,amax]) #R_list_raw[:, amax[0], amax[1]]) #
+        print('intD: ', D_raw.sum())
+        print('sumIntR: ', R_list_raw.sum())
+        print('avgIntR: ',  R_list_raw.sum() / R_list_raw.shape[0] )
+                
+        
+        
+        
+        print('pull: ', pull)
+        print('D_raw: ', D_raw)
+        print('R_raw: ', R_list_raw)
+        print('intD: ', D_raw.sum())
+        print('sumIntR: ', R_list_raw.sum())
+        print('avgIntR: ',  R_list_raw.sum() / R_list_raw.shape[0] )
+        print(R_list_raw.shape)
+        print(R_list_raw.sum(axis=-1))'''
+        #-----------------------------------------------------------------------
         
         
         
