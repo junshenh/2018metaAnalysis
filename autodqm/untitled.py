@@ -6,14 +6,14 @@ Created on Sun Jan  3 23:41:47 2021
 @author: si_sutantawibul1
 """
 import sys
-sys.path.insert(1, '/home/chosila/Projects/2018metaAnalysis/autodqm')
+sys.path.insert(1, '/home/chosila/Projects/metaAnalysis/autodqm')
+import compare_hists
 import importlib.util
-spec = importlib.util.spec_from_file_location('compare_hists', '/home/chosila/Projects/2018metaAnalysis/autodqm/compare_hists.py')
-compare_hists = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(compare_hists)
-import ROOT
+# spec = importlib.util.spec_from_file_location('compare_hists', '/home/chosila/Projects/metaAnalysis/autodqm/compare_hists.py')
+# compare_hists = importlib.util.module_from_spec(spec)
+# spec.loader.exec_module(compare_hists)
 import pickle
-import root_numpy
+#import root_numpy
 import matplotlib.pyplot as plt
 import os
 import numpy as np
@@ -30,7 +30,7 @@ datadirs = [basedatadir + i for i in os.listdir(basedatadir)]
 refdirs = [baserefdir + i for i in os.listdir(baserefdir)]
 #datadirs = [baserefdir + i for i in os.listdir(baserefdir)]
 data_path = 'rootfiles/ref/DQM_V0001_L1T_R000320002.root'
-ref_path = 'rootfiles/ref/DQM_V0001_L1T_R000320023.root'
+ref_path = 'rootfiles/ref/DQM_V0001_L1T_R000320025.root'
 config_dir = '../config'
 subsystem = 'EMTF'
 data_series = 'Run2018'
@@ -45,9 +45,9 @@ ref_run = ref_path[-11:-5]
 ynbins = 22
 xnbins = 20
 props = dict(boxstyle='round', facecolor='white')
-plotdir = f'plots/data{data_run[-2:]}ref{ref_run[-2:]}'
+plotdir = f'plots/oldAutoDQM/data{data_run[-2:]}ref{ref_run[-2:]}'
 
-
+condition = ''
 loadpkl = False
 
 def getBinCenter(arr):
@@ -59,7 +59,7 @@ def getBinCenter(arr):
 def generateLabel(df, y, x):
     df = df.sort_values(by=[y], ascending=False)
     for col in df.columns: ## convert to float bc it breaks if int
-        if not isinstance(df[col][0], str):
+        if not isinstance(df[col].iloc[0], str):
             df[col] = df[col].astype(float)
     txtstr = '\n'.join((
                         f'{df["histnames"].iloc[0]} :({df[x].iloc[0]:.4}, {df[y].iloc[0]:.4})',
@@ -83,33 +83,75 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
     if y =='ks':
         fig, ax = plt.subplots()
         xbins = np.linspace(0, max(histdf[x]), xnbins)
-        ax.hist2d(histdf[x], histdf[y], norm=mpl.colors.LogNorm(), bins=[xbins, ybins])
+        if 'nevents' in x:
+            xmin, xmax = np.log2(1), np.log2(max(histdf[x]))
+        elif 'nbins' in x: 
+            xmin, xmax = np.log2(1), np.log2(max(histdf[x]))
+        elif 'avg' in x: 
+            xmin, xmax = np.log2(2**-5), np.log2(max(histdf[x]))
+        # ymin, ymax = np.log2(2**-10), np.log2(max(histdf[y]))
+        logxbins = np.logspace(xmin, xmax, xnbins, base=2)
+        logybins = ybins#np.logspace(ymin, ymax, xnbins, base=2)
+        
+        ## clip the bottoms so to include underflow 
+        ## this was needed for log-binning but no longer needed but shouldnt affect anything.
+        xvals = np.clip(a = histdf[x], a_min = logxbins[0] , a_max = logxbins[-1])
+        yvals = np.clip(a = histdf[y], a_min = logybins[0] , a_max = logybins[-1])
+        
+        counts, _, _ = np.histogram2d(xvals, yvals, bins=(logxbins, logybins))
+        ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm(), shading='auto')
+        ax.set_xscale('log', base=2)
+        # ax.set_yscale('log', base=2)
+
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
-        ax.set_title(title)
+
+        ax.set_title(title + condition)
         textstr = generateLabel(df=histdf, y=y, x=x)
-        ax.text(1.05*max(histdf[x]), 0.5*max(histdf[y]), textstr, bbox=props)
-        plt.savefig(f'{plotdir}/{plotname}.png', bbox_inches='tight')
+        ax.text(1.25*max(histdf[x]), logybins[10], textstr, bbox=props)
+        plt.savefig(f'{plotdir}/{plotname}-chi2.png', bbox_inches='tight')
         plt.show()
         plt.close(fig)
     else: 
         fig, ax = plt.subplots()
         xbins = np.linspace(0, max(histdf[x]), xnbins)
-        ybinlabels = ybins.astype(str)[::2]
-        ybinlabels[-1] += '+'
-        maxval = ybins[-2]
-        ytoplot = np.clip(histdf[y], a_min=0, a_max=maxval)
-        ax.hist2d(histdf[x], ytoplot, norm=mpl.colors.LogNorm(), bins=[xbins, ybins])
+        if 'nevents' in x:
+            xmin, xmax = np.log2(1), np.log2(max(histdf[x]))
+        elif 'nbins' in x: 
+            xmin, xmax = np.log2(1), np.log2(max(histdf[x]))
+        elif 'avg' in x: 
+            xmin, xmax = np.log2(2**-5), np.log2(max(histdf[x]))
+        #ymin, ymax = np.log2(2**-10), np.log2(max(histdf[y]))
+        logxbins = np.logspace(xmin, xmax, xnbins, base=2)
+        logybins = ybins#np.logspace(ymin, ymax, xnbins, base=2)
+        #maxval = ybins[-2]
+        #ytoplot = np.clip(histdf[y], a_min=0, a_max=maxval)
+        
+        ## remove “cscLCTStrip”, “cscLCTWire”, “cscChamberStrip”, “cscChamberWire”, “rpcChamberPhi”, “rpcChamberTheta”, “rpcHitPhi”, and “rpcHitTheta”
+        ## from pull scatter plots
+        if 'pull' in y: 
+            searchfor = ['cscLCTStrip', 'cscLCTWire', 'cscChamberStrip', 'cscChamberWire', 'rpcChamberPhi', 'rpcChamberTheta', 'rpcHitPhi', 'rpcHitTheta']
+
+            histdf = histdf[~histdf['histnames'].str.contains('|'.join(searchfor))]
+
+        xvals = np.clip(a = histdf[x], a_min = logxbins[0] , a_max = logxbins[-1])
+        yvals = np.clip(a = histdf[y], a_min = logybins[0] , a_max = logybins[-1])
+        counts, _, _ = np.histogram2d(xvals, yvals, bins=(logxbins, logybins))
+        
+        ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm(), shading='auto')
+        ax.set_xscale('log', base=2)
+        # ax.set_yscale('log', base=2)
+
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
-        ax.set_title(title)
-        ax.set_yticks(ybins[::2])
-        ax.set_yticklabels(ybinlabels)
+        ax.set_title(title+condition)
+
         textstr = generateLabel(df=histdf, y=y, x=x)
-        ax.text(1.05*max(histdf[x]), 0.5*maxval, textstr, bbox=props)
-        plt.savefig(f'{plotdir}/{plotname}.png', bbox_inches='tight')
+        ax.text(1.25*max(histdf[x]), logybins[9], textstr, bbox=props)
+        plt.savefig(f'{plotdir}/{plotname}-{condition}.png', bbox_inches='tight')
         plt.show()
         plt.close(fig)
+    #%%
     #%%
 
 h1d = list()
@@ -149,89 +191,81 @@ print(f'data path: {data_path}')
 results = compare_hists.process(config_dir, subsystem,
                                 data_series, data_sample, data_run, data_path,
                                 ref_series, ref_sample, ref_run, ref_path,
-                                output_dir='./out/', plugin_dir='/home/chosila/Projects/2018metaAnalysis/plugins')
+                                output_dir='./out/', plugin_dir='/home/chosila/Projects/metaAnalysis/plugins')
 
 for result in results:
-    hists = result['hists']
-
-    for hist in hists:
-        histarr, histedge = root_numpy.hist2array(hist, return_edges=True)#, include_overflow=True)
-        if hist.InheritsFrom('TH2'):
-            h2d.append([histarr, histedge])
-            x = getBinCenter(histedge[0])
-            y = getBinCenter(histedge[1])
-            histnames2d.append(result['name'])
-            run2d.append(f"d{result['id'][40:46]}; r{result['id'][17:23]}")
-
-            #------------------ pull values vs nbins ------------------
-
-            hist2dnbins.append(histarr.shape[0] * histarr.shape[1])
-            maxpulls.append(result['info']['Max_Pull_Val'])
-
-            #-------------------------------------------------------------
-
-            #--------------------- pv vs nevents ------------------------------
-
-            nevents2ddata.append(result['info']['Data_Entries'])
-            nevents2dref.append(result['info']['Ref_Entries'])
-
-            #-------------------------------------------------------------
-
-
-            #------------------------ chi2 ------------------------------------
-
-            chi22d.append(result['info']['Chi_Squared'])
-
-            #----------------------------------------------------------------
-
-        elif hist.InheritsFrom('TH1'):
-            ## have to make this plot both the data and ref
-            ## looks like it returns the data first, but autodqm plots it second. this
-            ## doesn't really matter, just documenting
-            
-            histedge = histedge[0]
-            barval = getBinCenter(histedge)
-            histnames1d.append(result['name'])
-            run1d.append(f"d{result['id'][40:46]}; r{result['id'][17:23]}")
-
-            #----------------- plotting autodqm output --------------------
-
-            ## this is a very jank way to check if it's data or ref, as data
-            ## is returned first
-            #if i < 1:
-            #    plt.bar(barval, histarr, label='data', color='m')
-            #else:
-                ## this is jank. it doesn't look nice but i should still be able
-                ## do analysis, it will be ugly
-            #    plt.bar(barval, histarr, label='ref', edgecolor='b', alpha=0.5, )
-            #plt.title(result['name'])
-            #plt.legend(loc='best')
-            #h1d.append([histarr,histedge])
-            #i = i+1
-
-            #-------------------------------------------------------------
-
-
-            #------------------------ ks vs nbins ------------------------
-
-            hist1dnbins.append(histarr.shape[0])
-            kss.append(result['info']['KS_Val'])
-
-            #-------------------------------------------------------------
-
-            #------------------------ ks vs nevents ------------------------
-
-            nevents1ddata.append(result['info']['Data_Entries'])
-            nevents1dref.append(result['info']['Ref_Entries'])
-
-            #-------------------------------------------------------------
-
-            #--------------------------- chi2& max pull ----------------------
-
-            chi21d.append(result['info']['Chi_Squared'])
-            maxpull1d.append(result['info']['Max_Pull_Val'])
-
-            #----------------------------------------------------------------
+        hists = result['hists']
+        for hist in hists:
+            #histarr, histedge = hists# root_numpy.hist2array(hist, return_edges=True)#, include_overflow=True)
+            if len(hist.shape) == 2:#hist.InheritsFrom('TH2'):
+                #h2d.append([histarr, histedge])
+                #x = getBinCenter(histedge[0])
+                #y = getBinCenter(histedge[1])
+                histnames2d.append(result['name'])
+                #run2d.append(run)
+    
+                #------------------ pull values vs nbins ------------------
+    
+                hist2dnbins.append(hist.shape[0]*hist.shape[1])
+                maxpulls.append(result['info']['Max_Pull_Val'])
+    
+                #-------------------------------------------------------------
+    
+                #--------------------- pv vs nevents ------------------------------
+    
+                nevents2ddata.append(result['info']['Data_Entries'])
+                nevents2dref.append(result['info']['Ref_Entries'])
+    
+                #-------------------------------------------------------------
+    
+    
+                #------------------------ chi2 ------------------------------------
+    
+                chi22d.append(result['info']['Chi_Squared'])
+    
+                #----------------------------------------------------------------
+                
+                #--------------------------- nbinsUsed ----------------------------
+                #nBinsUsed.append(result['info']['nBinsUsed'])
+                #pulls2d.append(result['info']['new_pulls'])
+                #------------------------------------------------------------------
+                
+    
+            elif len(hist.shape) == 1: #hist.InheritsFrom('TH1'):
+                ## have to make this plot both the data and ref
+                ## looks like it returns the data first, but autodqm plots it second. this
+                ## doesn't really matter, just documenting
+                
+                #histedge = histedge[0]
+                #barval = getBinCenter(histedge)
+                histnames1d.append(result['name'])
+                #run1d.append(run)
+    
+    
+                #------------------------ ks vs nbins ------------------------
+    
+                hist1dnbins.append(hist.shape[0])
+                kss.append(result['info']['KS_Val'])
+    
+                #-------------------------------------------------------------
+    
+                #------------------------ ks vs nevents ------------------------
+    
+                nevents1ddata.append(result['info']['Data_Entries'])
+                nevents1dref.append(result['info']['Ref_Entries'])
+    
+                #-------------------------------------------------------------
+    
+                #--------------------------- chi2& max pull ----------------------
+    
+                chi21d.append(result['info']['Chi_Squared'])
+                maxpull1d.append(result['info']['Max_Pull_Val'])
+    
+                #----------------------------------------------------------------
+    
+                #-----------------------pulls------------------------------------
+                #pulls1d.append(result['info']['pulls'])
+                #-------------------------------------------------
 
 
     
@@ -245,7 +279,7 @@ hists1d = hists1d.assign(neventsdata = nevents1ddata)
 hists1d = hists1d.assign(neventsref = nevents1dref)
 hists1d = hists1d.assign(chi2 = chi21d)
 hists1d = hists1d.assign(maxpull = maxpull1d)
-hists1d = hists1d.assign(run=run1d)
+#hists1d = hists1d.assign(run=run1d)
 hists1d = hists1d.assign(avgdata = np.array(nevents1ddata)/np.array(hist1dnbins))
 hists1d = hists1d.assign(avgref = np.array(nevents1dref)/np.array(hist1dnbins))
 hists1d = hists1d.assign(chi2 = chi21d)
@@ -257,7 +291,7 @@ hists2d = hists2d.assign(maxpull= maxpulls)
 hists2d = hists2d.assign(neventsdata = nevents2ddata)
 hists2d = hists2d.assign(neventsref = nevents2dref)
 hists2d = hists2d.assign(chi2 = chi22d)
-hists2d = hists2d.assign(run = run2d)
+#hists2d = hists2d.assign(run = run2d)
 hists2d = hists2d.assign(avgdata = np.array(nevents2ddata)/np.array(hist2dnbins))
 hists2d = hists2d.assign(avgref = np.array(nevents2dref)/np.array(hist2dnbins))
 hists2d = hists2d.assign(chi2 = chi22d)
@@ -268,16 +302,20 @@ import os
 os.makedirs(plotdir, exist_ok=True)
 
 
-maxpull1d_max = 21
-maxpull2d_max = 10.5
-chi21d_max = 42
-chi22d_max = 105
+maxpull1d_max = 10#np.log2(2**3.1)#21
+maxpull1d_min = 0#np.log2(2**-10)
+maxpull2d_max = 10#np.log2(2**3.1)#10.5
+maxpull2d_min = 0#np.log2(2**-10)
+chi21d_max = 15#np.log2(2**7)#50
+chi21d_min = 0#np.log2(2**-4)
+chi22d_max = 15#np.log2(2**7)#100
+chi22d_min = 0#np.log2(2**-4)
 
-ksBins = np.linspace(0,1, ynbins)
-maxpull1dBins = np.linspace(0, maxpull1d_max, ynbins)
-maxpull2dBins = np.linspace(0, maxpull2d_max, ynbins)
-chi21dBins = np.linspace(0, chi21d_max, ynbins)
-chi22dBins = np.linspace(0, chi22d_max, ynbins)
+ksBins = np.linspace(0, 1, ynbins)#np.logspace(np.log2(2**-3), np.log2(1), 20)
+maxpull1dBins = np.linspace(maxpull1d_min, maxpull1d_max, ynbins)#np.logspace(maxpull1d_min, maxpull1d_max, ynbins, base=2)
+maxpull2dBins = np.linspace(maxpull2d_min, maxpull2d_max, ynbins)#np.logspace(maxpull2d_min, maxpull2d_max, ynbins, base=2)
+chi21dBins = np.linspace(chi21d_min, chi22d_max, ynbins)#np.logspace(chi21d_min, chi21d_max, ynbins, base=2)
+chi22dBins = np.linspace(chi22d_min, chi22d_max, ynbins)#np.logspace(chi22d_min, chi22d_max, ynbins, base=2)
 
 #%%
 #------------------------------ ks/pv/chi2 vs nbins ------------------------------

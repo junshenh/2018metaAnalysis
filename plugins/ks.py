@@ -6,7 +6,7 @@ import ROOT
 from plugin_results import PluginResults
 from pullvals import pull
 import numpy as np
-
+import scipy.stats
 
 def comparators():
     return {
@@ -24,27 +24,34 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
 
 
     # Check that the hists are histograms
-    if not data_hist.InheritsFrom('TH1') or not ref_hist.InheritsFrom('TH1'):
+    if "TH1" not in str(type(data_hist)) or "TH1" not in str(type(ref_hist)):
         return None
+    
 
-    # Check that the hists are 1 dimensional
-    if data_hist.GetDimension() != 1 or ref_hist.GetDimension() != 1:
-        return None
+    # Normalize data_hist by copying histogram and then normalizing (Note declaration of data_hist_Entries & ref_hist_Entries)
+    data_hist_norm = np.copy(data_hist.values())
+    ref_hist_norm = np.copy(ref_hist.values())
 
-    # Normalize data_hist
-    if data_hist.GetEntries() > 0:
-        data_hist.Scale(ref_hist.GetEntries() / data_hist.GetEntries())
+    pull_hist = np.copy(data_hist_norm)
+
+    data_hist_Entries = np.sum(data_hist_norm)
+    ref_hist_Entries = np.sum(ref_hist_norm)
+    if data_hist_Entries > 0:
+        data_hist_norm = data_hist_norm * (ref_hist_Entries / data_hist_Entries)
+    
 
     # Reject empty histograms
-    is_good = data_hist.GetEntries() != 0 and data_hist.GetEntries() >= min_entries
+    is_good = data_hist_Entries != 0 and data_hist_Entries >= min_entries
 
-    ks = data_hist.KolmogorovTest(ref_hist, "M")
+    ks = scipy.stats.kstest(ref_hist_norm, data_hist_norm)[0]
 
     is_outlier = is_good and ks > ks_cut
+        
 
-    canv, artifacts = draw_same(
-        data_hist, histpair.data_run, ref_hist, histpair.ref_run)
-
+    ref_text = "ref:"+str(histpair.ref_run)
+    data_text = "data:"+str(histpair.data_run)
+    artifacts = [data_hist_norm, ref_hist_norm, data_text, ref_text]
+    
 
     pull_cap = 25
     ## chi2 and pull vals
@@ -52,42 +59,53 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     nBins = 0
     nBinsUsed = 0
     chi2 = 0
-    for i in range(1, ref_hist.GetNbinsX() + 1):
-        # Bin 1 data
-        bin1 = data_hist.GetBinContent(i)
 
-        # Bin 2 data
-        bin2 = ref_hist.GetBinContent(i)
+    # data_hist_norm = np.copy(data_hist.values())
+    # ref_hist_norm = np.copy(ref_hist.values())
+    data_hist_errs = np.nan_to_num(abs(np.array(scipy.stats.chi2.interval(0.6827, 2 * data_hist_norm)) / 2 - 1 - data_hist_norm))
+    ref_hist_errs = np.nan_to_num(abs(np.array(scipy.stats.chi2.interval(0.6827, 2 * ref_hist_norm)) / 2 - 1 - ref_hist_norm))
+    
+    print(data_hist_errs/data_hist_norm)
+    print(ref_hist_errs/ref_hist_norm)
+    
+    for x in range(0, data_hist_norm.shape[0]):
+            # Bin 1 data
+            bin1 = data_hist_norm[x]
 
-        bin1err = data_hist.GetBinError(i)
-        bin2err = ref_hist.GetBinError(i)
+            # Bin 2 data
+            bin2 = ref_hist_norm[x]
 
-        # Count bins for chi2 calculation
-        nBins += 1
-        if (bin1+bin2) > 0: nBinsUsed +=1 
+            # Getting Proper Poisson error
+            bin1err, bin2err = data_hist_errs[0, x], ref_hist_errs[1, x]
+            if bin1 < bin2:
+                bin1err, bin2err = data_hist_errs[1, x], ref_hist_errs[0, x]
+            # Count bins for chi2 calculation
+            nBins += 1
 
-        # Ensure that divide-by-zero error is not thrown when calculating pull
-        if bin1err == 0 and bin2err == 0:
-            new_pull = 0
-        else:
-            new_pull = pull(bin1, bin1err, bin2, bin2err)
-            new_pull = maxPullNorm(new_pull, nBinsUsed)
+            # Ensure that divide-by-zero error is not thrown when calculating pull
+            if bin1err == 0 and bin2err == 0:
+                new_pull = 0
+            else:
+                new_pull = pull(bin1, bin1err, bin2, bin2err)
 
-        # Sum pulls
-        chi2 += new_pull**2
+            # Sum pulls
+            chi2 += new_pull**2
 
-        # Check if max_pull
-        max_pull = max(max_pull, abs(new_pull))
-        #max_pull = maxPullNorm(max_pull, nBinsUsed)
+            # Check if max_pull
+            max_pull = max(max_pull, abs(new_pull))
 
-        # Clamp the displayed value
-        fill_val = max(min(new_pull, pull_cap), -pull_cap)
+            # Clamp the displayed value
+            fill_val = max(min(new_pull, pull_cap), -pull_cap)
 
-        # If the input bins were explicitly empty, make this bin white by
-        # setting it out of range
-        ## why is this done????
-        if bin1 == bin2 == 0:
-            fill_val = -999
+            # If the input bins were explicitly empty, make this bin white by
+            # setting it out of range
+            if bin1 == bin2 == 0:
+                fill_val = -999
+
+            # Fill Pull Histogram            
+            pull_hist[x] = fill_val
+
+
     # Compute chi2
     chi2 = (chi2 / nBins)
 
@@ -95,15 +113,15 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
 
 
     info = {
-        'Data_Entries': data_hist.GetEntries(),
-        'Ref_Entries': ref_hist.GetEntries(),
+        'Data_Entries': data_hist.values().sum(),
+        'Ref_Entries': ref_hist.values().sum(),
         'KS_Val': ks,
         'Chi_Squared' : chi2,
         'Max_Pull_Val': max_pull
     }
 
     return PluginResults(
-        canv,
+        None,
         show=is_outlier,
         info=info,
         artifacts=artifacts)
