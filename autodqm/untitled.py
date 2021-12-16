@@ -5,12 +5,21 @@ Created on Sun Jan  3 23:41:47 2021
 
 @author: si_sutantawibul1
 """
+if __name__ == '__main__':
+    import sys
+    import subprocess as sb
+    sys.path.insert(1, sb.check_output(
+        'echo $(git rev-parse --show-cdup)',
+        shell=True).decode().strip('\n'))
+
+
+
 import sys
 sys.path.insert(1, '/home/chosila/Projects/metaAnalysis/autodqm')
 import importlib.util
-spec = importlib.util.spec_from_file_location('compare_hists', '/home/chosila/Projects/metaAnalysis/autodqm/compare_hists.py')
-compare_hists = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(compare_hists)
+#spec = importlib.util.spec_from_file_location('compare_hists', '/home/chosila/Projects/metaAnalysis/autodqm/compare_hists.py')
+#compare_hists = importlib.util.module_from_spec(spec)
+#spec.loader.exec_module(compare_hists)
 import pickle
 import matplotlib.pyplot as plt
 import os
@@ -20,41 +29,33 @@ import compare_hists
 import pandas as pd
 import time 
 import json
+import argparse 
 
 
-## read the datafile and reffiles from a json 
-datadict = json.load(open('datadict.json'))
+parser = argparse.ArgumentParser() 
+group = parser.add_mutually_exclusive_group(required=True)
+group.add_argument('--loadpkl', dest='loadpkl', type =bool, help='whether to load hist dfs from pickle. This xor --jsonfile flag is required')
+group.add_argument('--jsonfile', dest='jsonfile', type=str, help='name of the jsonfile of runs to use')
+
+args = parser.parse_args() 
 
 condition = '' 
 
-# plt.tight_layout()
-# 'https://cmsweb.cern.ch/dqm/offline/data/browse/ROOT/OnlineData/original/00032xxxx/0003200xx/'
-# basedatadir = 'rootfiles/data/'
-# baserefdir = 'rootfiles/ref/'
-# datadirs = [basedatadir + i for i in os.listdir(basedatadir)]
-# refdirs = [baserefdir + i for i in os.listdir(baserefdir)]
-# #datadirs = [baserefdir + i for i in os.listdir(baserefdir)]
-# data_path = 'rootfiles/ref/DQM_V0001_L1T_R000320002.root'
-# #ref_path = 'rootfiles/ref/DQM_V0001_L1T_R000320006.root'
+hists1ddir = 'pickles/hists1d-goodruns.pkl'
+hists2ddir = 'pickles/hists2d-goodruns.pkl'
+loadpkl = args.loadpkl
+
 config_dir = '../config'
 subsystem = 'EMTF'
 data_series = 'Run2018'
 data_sample = 'L1T'
-# #dataruns = [i[-11:-5] for i in datadirs]
-# data_run = data_path[-11:-5]
 ref_series = 'Run2018'
 ref_sample = 'L1T'
-# #refruns = [i[-11:-5] for i in refdirs]
-# #ref_run = ref_path[-11:-5]
-# ref_runs_list = [319756, 319849, 319853, 319854, 319910, 319915, 319941, 319991, 319992, 319993]
-# ref_list = [f'rootfiles/ref/DQM_V0001_L1T_R000{x}.root' for x in ref_runs_list]
 
 ynbins = 20
 xnbins = 20
 props = dict(boxstyle='round', facecolor='white')
-plotdir = f'plots/combination'
-
-#loadpkl = False
+plotdir = f'plots/tmp'
 
 def getBinCenter(arr):
     arrCen = list()
@@ -99,11 +100,15 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         # ymin, ymax = np.log2(2**-10), np.log2(max(histdf[y]))
         logxbins = np.logspace(xmin, xmax, xnbins, base=2)
         logybins = ybins#np.logspace(ymin, ymax, xnbins, base=2)
+
+        searchfor = ['cscLCTStrip', 'cscLCTWire', 'cscChamberStrip', 'cscChamberWire', 'rpcChamberPhi', 'rpcChamberTheta', 'rpcH\
+itPhi', 'rpcHitTheta']
+        histdfshrt = histdf[~histdf['histnames'].str.contains('|'.join(searchfor))]
         
         ## clip the bottoms so to include underflow 
         ## this was needed for log-binning but no longer needed but shouldnt affect anything.
-        xvals = np.clip(a = histdf[x], a_min = logxbins[0] , a_max = logxbins[-1])
-        yvals = np.clip(a = histdf[y], a_min = logybins[0] , a_max = logybins[-1])
+        xvals = np.clip(a = histdfshrt[x], a_min = logxbins[0] , a_max = logxbins[-1])
+        yvals = np.clip(a = histdfshrt[y], a_min = logybins[0] , a_max = logybins[-1])
         
         counts, _, _ = np.histogram2d(xvals, yvals, bins=(logxbins, logybins))
         ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm(), shading='auto')
@@ -114,10 +119,9 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         ax.set_ylabel(ylabel)
 
         ax.set_title(title + condition)
-        textstr = generateLabel(df=histdf, y=y, x=x)
+        textstr = generateLabel(df=histdfshrt, y=y, x=x)
         ax.text(1.25*max(histdf[x]), logybins[10], textstr, bbox=props)
         plt.savefig(f'{plotdir}/{plotname}-chi2.png', bbox_inches='tight')
-        plt.show()
         plt.close(fig)
     else: 
         fig, ax = plt.subplots()
@@ -136,13 +140,12 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         
         ## remove “cscLCTStrip”, “cscLCTWire”, “cscChamberStrip”, “cscChamberWire”, “rpcChamberPhi”, “rpcChamberTheta”, “rpcHitPhi”, and “rpcHitTheta”
         ## from pull scatter plots
-        if 'pull' in y: 
-            searchfor = ['cscLCTStrip', 'cscLCTWire', 'cscChamberStrip', 'cscChamberWire', 'rpcChamberPhi', 'rpcChamberTheta', 'rpcHitPhi', 'rpcHitTheta']
+        #if 'pull' in y: 
+        searchfor = ['cscLCTStrip', 'cscLCTWire', 'cscChamberStrip', 'cscChamberWire', 'rpcChamberPhi', 'rpcChamberTheta', 'rpcHitPhi', 'rpcHitTheta']
+        histdfshrt = histdf[~histdf['histnames'].str.contains('|'.join(searchfor))]
 
-            histdf = histdf[~histdf['histnames'].str.contains('|'.join(searchfor))]
-
-        xvals = np.clip(a = histdf[x], a_min = logxbins[0] , a_max = logxbins[-1])
-        yvals = np.clip(a = histdf[y], a_min = logybins[0] , a_max = logybins[-1])
+        xvals = np.clip(a = histdfshrt[x], a_min = logxbins[0] , a_max = logxbins[-1])
+        yvals = np.clip(a = histdfshrt[y], a_min = logybins[0] , a_max = logybins[-1])
         counts, _, _ = np.histogram2d(xvals, yvals, bins=(logxbins, logybins))
         
         ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm(), shading='auto')
@@ -153,183 +156,151 @@ def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
         ax.set_ylabel(ylabel)
         ax.set_title(title+condition)
 
-        textstr = generateLabel(df=histdf, y=y, x=x)
+        textstr = generateLabel(df=histdfshrt, y=y, x=x)
         ax.text(1.25*max(histdf[x]), logybins[9], textstr, bbox=props)
         plt.savefig(f'{plotdir}/{plotname}-{condition}.png', bbox_inches='tight')
-        plt.show()
         plt.close(fig)
     #%%
 
-h1d = list()
-h2d = list()
 
-## for storing items to plot
-hist1dnbins = list()
-hist2dnbins = list()
-maxpulls = list()
-kss = list()
-nevents1ddata = list()
-nevents1dref = list()
-nevents2ddata = list()
-nevents2dref = list()
-chi21d = list()
-chi22d = list()
-maxpull1d = list()
-histnames1d = list()
-histnames2d = list()
-run1d = list()
-run2d = list()
+if not loadpkl: 
+    ## read the datafile and reffiles from a json 
 
-nBinsUsed = list()
-pulls1d = list()
-pulls2d = list()
-
-# if not loadpkl:
-#     results = compare_hists.process(config_dir, subsystem,
-#                                    data_series, data_sample, data_run, data_path,
-#                                    ref_series, ref_sample, ref_run, ref_path,
-#                                    output_dir='./out/', plugin_dir='/home/chosila/Projects/AutoDQM-p3/plugins')
-#     pickle.dump(results, open('out/results.pkl', 'wb'))
-
-# else:
-#     results = pickle.load(open('out/results.pkl', 'rb'))
-
-#data_run = data_path[-11:-5]
-#print(f'ref path: {ref_path}')
-#print(f'data path: {data_path}')
-
-resultslist = []
-datarunlist = []
-start = time.time()
-for data_path in datadict:
-    data_run = data_path[-11:-5]
-    datarunlist.append(data_run)
-    ref_list = datadict[data_path]
-    ref_runs_list = [i[-11:-5] for i in ref_list]
-    ref_path = data_path
-    ref_run = data_run
-    resultslist.append(compare_hists.process(config_dir, subsystem,
-                                    data_series, data_sample, data_run, data_path,
-                                    ref_series, ref_sample, ref_run, ref_path,
-                                    ref_list, ref_runs_list,
-                                    output_dir='./out/', plugin_dir='/home/chosila/Projects/metaAnalysis/plugins'))
-end = time.time()
-print('time taken: ', end - start)
-
-for i,results in enumerate(resultslist):
-    run = datarunlist[i]
-    for result in results:
-        hists = result['hists']
-        for hist in hists:
-            #histarr, histedge = hists# root_numpy.hist2array(hist, return_edges=True)#, include_overflow=True)
-            if len(hist.shape) == 2:#hist.InheritsFrom('TH2'):
-                #h2d.append([histarr, histedge])
-                #x = getBinCenter(histedge[0])
-                #y = getBinCenter(histedge[1])
-                histnames2d.append(result['name'])
-                run2d.append(run)
-    
-                #------------------ pull values vs nbins ------------------
-    
-                hist2dnbins.append(hist.shape[0]*hist.shape[1])
-                maxpulls.append(result['info']['Max_Pull_Val'])
-    
-                #-------------------------------------------------------------
-    
-                #--------------------- pv vs nevents ------------------------------
-    
-                nevents2ddata.append(result['info']['Data_Entries'])
-                nevents2dref.append(result['info']['Ref_Entries'])
-    
-                #-------------------------------------------------------------
-    
-    
-                #------------------------ chi2 ------------------------------------
-    
-                chi22d.append(result['info']['Chi_Squared'])
-    
-                #----------------------------------------------------------------
-                
-                #--------------------------- nbinsUsed ----------------------------
-                nBinsUsed.append(result['info']['nBinsUsed'])
-                pulls2d.append(result['info']['new_pulls'])
-                #------------------------------------------------------------------
-                
-    
-            elif len(hist.shape) == 1: #hist.InheritsFrom('TH1'):
-                ## have to make this plot both the data and ref
-                ## looks like it returns the data first, but autodqm plots it second. this
-                ## doesn't really matter, just documenting
-                
-                #histedge = histedge[0]
-                #barval = getBinCenter(histedge)
-                histnames1d.append(result['name'])
-                run1d.append(run)
-    
-    
-                #------------------------ ks vs nbins ------------------------
-    
-                hist1dnbins.append(hist.shape[0])
-                kss.append(result['info']['KS_Val'])
-    
-                #-------------------------------------------------------------
-    
-                #------------------------ ks vs nevents ------------------------
-    
-                nevents1ddata.append(result['info']['Data_Entries'])
-                nevents1dref.append(result['info']['Ref_Entries'])
-    
-                #-------------------------------------------------------------
-    
-                #--------------------------- chi2& max pull ----------------------
-    
-                chi21d.append(result['info']['Chi_Squared'])
-                maxpull1d.append(result['info']['Max_Pull_Val'])
-    
-                #----------------------------------------------------------------
-    
-                #-----------------------pulls------------------------------------
-                pulls1d.append(result['info']['pulls'])
-                #----------------------------------------------------------------
+    datadict = json.load(open(args.jsonfile))
 
     
-#------------------------- make pd of info, easy to mannip ------------------
-nevents1ddata = np.array(nevents1ddata)
-hist1dnbins = np.array(hist1dnbins)
-nevents1dref = np.array(nevents1dref)
-hist1dnbins = np.array(hist1dnbins)
-nevents2ddata = np.array(nevents2ddata)
-hist2dnbins = np.array(hist2dnbins)
-nevents2dref = np.array(nevents2dref)
-hist2dnbins = np.array(hist2dnbins)
+    h1d = list()
+    h2d = list()
+    
+    ## for storing items to plot
+    hist1dnbins = list()
+    hist2dnbins = list()
+    maxpulls = list()
+    kss = list()
+    nevents1ddata = list()
+    nevents1dref = list()
+    nevents2ddata = list()
+    nevents2dref = list()
+    chi21d = list()
+    chi22d = list()
+    maxpull1d = list()
+    histnames1d = list()
+    histnames2d = list()
+    run1d = list()
+    run2d = list()
+    
+    nBinsUsed = list()
+    pulls1d = list()
+    pulls2d = list()
+    
+    
+    resultslist = []
+    datarunlist = []
+    start = time.time()
+    for data_path in datadict:
+        runnum_idx = data_path.find('_R000')+5#data_path[-11:-5]
+        data_run = data_path[runnum_idx:runnum_idx+6]
+        datarunlist.append(data_run)
+        ref_list = datadict[data_path]
+        runnum_idxs = [x.find('_R000')+5 for x in ref_list]
+        ref_runs_list = [x[i:i+6] for x,i in zip(ref_list,runnum_idxs)]
+        ref_path = data_path
+        ref_run = data_run
+        resultslist.append(compare_hists.process(config_dir, subsystem,
+                                                 data_series, data_sample, data_run, data_path,
+                                                 ref_series, ref_sample, ref_run, ref_path,
+                                                 ref_list, ref_runs_list,
+                                                 output_dir='./out/', plugin_dir='/afs/cern.ch/user/c/csutanta/Projects/metaAnalysis/plugins/'))
+ 
 
-## note: i tried to put the pulls array into the df too, but the df coudln't display it
-## as an array so it was futile. Just use the df to find the correct index and use 
-## that to find the corresponding pulls in the pulls list
-hists1d = pd.DataFrame(histnames1d)
-hists1d = hists1d.rename(columns={0: 'histnames'})
-hists1d = hists1d.assign(ks = kss)
-hists1d = hists1d.assign(nbins = hist1dnbins)
-hists1d = hists1d.assign(neventsdata = nevents1ddata)
-hists1d = hists1d.assign(neventsref = nevents1dref)
-hists1d = hists1d.assign(chi2 = chi21d)
-hists1d = hists1d.assign(maxpull = maxpull1d)
-hists1d = hists1d.assign(run=run1d)
-hists1d = hists1d.assign(avgdata = np.divide(nevents1ddata, hist1dnbins))
-hists1d = hists1d.assign(avgref = np.divide(nevents1dref,hist1dnbins))
-hists1d = hists1d.assign(chi2 = chi21d)
 
-hists2d = pd.DataFrame(histnames2d)
-hists2d = hists2d.rename(columns={0: 'histnames'})
-hists2d = hists2d.assign(nbins = hist2dnbins)
-hists2d = hists2d.assign(maxpull= maxpulls)
-hists2d = hists2d.assign(neventsdata = nevents2ddata)
-hists2d = hists2d.assign(neventsref = nevents2dref)
-hists2d = hists2d.assign(chi2 = chi22d)
-hists2d = hists2d.assign(run = run2d)
-hists2d = hists2d.assign(avgdata = np.divide(nevents2ddata, hist2dnbins, out = np.zeros_like(nevents2ddata), where=hist2dnbins!=0))
-hists2d = hists2d.assign(avgref = np.divide(nevents2dref, hist2dnbins, out = np.zeros_like(nevents2ddata), where=hist2dnbins!=0))
-hists2d = hists2d.assign(chi2 = chi22d)
+    end = time.time()
+    print('time taken: ', end - start)
+    
+    for i,results in enumerate(resultslist):
+        run = datarunlist[i]
+        for result in results:
+            hists = result['hists']
+            for hist in hists:
+                if len(hist.shape) == 2:
+                    #h2d.append([histarr, histedge])
+                    #x = getBinCenter(histedge[0])
+                    #y = getBinCenter(histedge[1])
+                    histnames2d.append(result['name'])
+                    run2d.append(run)
+    
+                    hist2dnbins.append(hist.shape[0]*hist.shape[1])
+                    maxpulls.append(result['info']['Max_Pull_Val'])
+                    nevents2ddata.append(result['info']['Data_Entries'])
+                    nevents2dref.append(result['info']['Ref_Entries'])
+                    chi22d.append(result['info']['Chi_Squared'])
+                    nBinsUsed.append(result['info']['nBinsUsed'])
+                    pulls2d.append(result['info']['new_pulls'])
+        
+                elif len(hist.shape) == 1:
+                    #histedge = histedge[0]
+                    #barval = getBinCenter(histedge)
+                    histnames1d.append(result['name'])
+                    run1d.append(run)
+    
+                    hist1dnbins.append(hist.shape[0])
+                    kss.append(result['info']['KS_Val'])
+                    nevents1ddata.append(result['info']['Data_Entries'])
+                    nevents1dref.append(result['info']['Ref_Entries'])
+                    chi21d.append(result['info']['Chi_Squared'])
+                    maxpull1d.append(result['info']['Max_Pull_Val'])
+                    pulls1d.append(result['info']['pulls'])
+                    
+        
+    #------------------------- make pd of info, easy to mannip ------------------
+    nevents1ddata = np.array(nevents1ddata)
+    hist1dnbins = np.array(hist1dnbins)
+    nevents1dref = np.array(nevents1dref)
+    hist1dnbins = np.array(hist1dnbins)
+    nevents2ddata = np.array(nevents2ddata)
+    hist2dnbins = np.array(hist2dnbins)
+    nevents2dref = np.array(nevents2dref)
+    hist2dnbins = np.array(hist2dnbins)
+    
+    ## note: i tried to put the pulls array into the df too, but the df coudln't display it
+    ## as an array so it was futile. Just use the df to find the correct index and use 
+    ## that to find the corresponding pulls in the pulls list
+    hists1d = pd.DataFrame(histnames1d)
+    hists1d = hists1d.rename(columns={0: 'histnames'})
+    hists1d = hists1d.assign(ks = kss)
+    hists1d = hists1d.assign(nbins = hist1dnbins)
+    hists1d = hists1d.assign(neventsdata = nevents1ddata)
+    hists1d = hists1d.assign(neventsref = nevents1dref)
+    hists1d = hists1d.assign(chi2 = chi21d)
+    hists1d = hists1d.assign(maxpull = maxpull1d)
+    hists1d = hists1d.assign(run=run1d)
+    hists1d = hists1d.assign(avgdata = np.divide(nevents1ddata, hist1dnbins))
+    hists1d = hists1d.assign(avgref = np.divide(nevents1dref,hist1dnbins))
+    hists1d = hists1d.assign(chi2 = chi21d)
+    
+    hists2d = pd.DataFrame(histnames2d)
+    hists2d = hists2d.rename(columns={0: 'histnames'})
+    hists2d = hists2d.assign(nbins = hist2dnbins)
+    hists2d = hists2d.assign(maxpull= maxpulls)
+    hists2d = hists2d.assign(neventsdata = nevents2ddata)
+    hists2d = hists2d.assign(neventsref = nevents2dref)
+    hists2d = hists2d.assign(chi2 = chi22d)
+    hists2d = hists2d.assign(run = run2d)
+    hists2d = hists2d.assign(avgdata = np.divide(nevents2ddata, hist2dnbins, out = np.zeros_like(nevents2ddata), where=hist2dnbins!=0))
+    hists2d = hists2d.assign(avgref = np.divide(nevents2dref, hist2dnbins, out = np.zeros_like(nevents2ddata), where=hist2dnbins!=0))
+    hists2d = hists2d.assign(chi2 = chi22d)
+
+else: 
+    hists1d = pickle.load(open(hists1ddir, 'rb'))
+    hists2d = pickle.load(open(hists2ddir, 'rb'))
+    data_run = hists1d['run'][0]
+
+
+#%% pickles of hist2d 
+#pickle.dump(hists2d, open(f'pickles/hists2d-{data_run}.pkl','wb'))
+#pickle.dump(hists1d, open(f'pickles/hists1d-{data_run}.pkl','wb'))
+hists2d.to_csv(f'csv/hists2d-{data_run}.csv', index=False)
+hists1d.to_csv(f'csv/hists1d-{data_run}.csv', index=False)
 
 
 os.makedirs(plotdir, exist_ok=True)
@@ -462,20 +433,22 @@ makePlot(histdf=hists2d, y='chi2', x='avgdata', ybins=chi22dBins,
 
 #%%
 
-print(f'maxpull1d: {max(maxpull1d)}, quantile: {np.quantile(maxpull1d, .95)}')
-print(f'chi21d: {max(chi21d)}, quantile: {np.quantile(chi21d, .95)}')
-print(f'maxpull2d: {max(maxpulls)}, quantile: {np.quantile(maxpulls, .95)}')
-print(f'chi22d: {max(chi22d)}, quantile: {np.quantile(chi22d, .95)}')
+# print(f'maxpull1d: {max(maxpull1d)}, quantile: {np.quantile(maxpull1d, .95)}')
+# print(f'chi21d: {max(chi21d)}, quantile: {np.quantile(chi21d, .95)}')
+# print(f'maxpull2d: {max(maxpulls)}, quantile: {np.quantile(maxpulls, .95)}')
+# print(f'chi22d: {max(chi22d)}, quantile: {np.quantile(chi22d, .95)}')
+# 
+# maxpull1d.sort()
+# maxpulls.sort()
+# chi21d.sort()
+# chi22d.sort()
+# nBinsUsed.sort()
 
-maxpull1d.sort()
-maxpulls.sort()
-chi21d.sort()
-chi22d.sort()
-nBinsUsed.sort()
-#%%
-## heat maps pull and bar pull 
 
-if False:
+
+
+## heatmaps for pulls 
+if True:
     maxpullval = 9#8.292361075813595
     minpullval = 0 
     
@@ -507,10 +480,9 @@ if False:
             ax.set_title(x+condition)
             #os.makedirs(f'{plotdir}/pulls2d', exist_ok=True)
             fig.savefig(f'{plotdir}/{x}{condition}.png', bbox_inches='tight') #'pulls2d/{x}-chi2.png', bbox_inches='tight')
-            plt.show()
+            # plt.show()
             plt.close('all')
     
-            
     #%%
     
     top5chi2 = hists1d.sort_values(by='chi2',ascending=False).histnames[:5].to_list()
@@ -519,7 +491,9 @@ if False:
     pullhist1d = hists1d[~hists1d['histnames'].str.contains('|'.join(searchfor))]
     
     top5maxpull = hists1d.sort_values(by='maxpull',ascending=False).histnames[:5].to_list()
-    l = top5chi2 + top5maxpull                                                                                                                 
+    l = ['emtfTrackEta']
+    l = top5chi2 + top5maxpull + l                                                  
+                                  
     for i,x in enumerate(histnames1d):
         if any(substring in x for substring in l):
             histvals = pulls1d[i][0]
@@ -532,7 +506,7 @@ if False:
             ax.set_ylim([minpullval, maxpullval])
             #os.makedirs(f'{plotdir}/pulls1d', exist_ok=True)
             fig.savefig(f'{plotdir}/{x}{condition}.png', bbox_inches='tight')#pulls1d/{x}-chi2.png', bbox_inches='tight')
-            plt.show()
+            # plt.show()
             plt.close('all')
             
             
