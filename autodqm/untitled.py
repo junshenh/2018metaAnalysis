@@ -277,6 +277,7 @@ if not loadpkl:
     hists1d = hists1d.assign(avgdata = np.divide(nevents1ddata, hist1dnbins))
     hists1d = hists1d.assign(avgref = np.divide(nevents1dref,hist1dnbins))
     hists1d = hists1d.assign(chi2 = chi21d)
+    # hists1d = hists1d.assign(pulls = pulls1d) why does this save as a string wtf
     
     hists2d = pd.DataFrame(histnames2d)
     hists2d = hists2d.rename(columns={0: 'histnames'})
@@ -289,6 +290,7 @@ if not loadpkl:
     hists2d = hists2d.assign(avgdata = np.divide(nevents2ddata, hist2dnbins, out = np.zeros_like(nevents2ddata), where=hist2dnbins!=0))
     hists2d = hists2d.assign(avgref = np.divide(nevents2dref, hist2dnbins, out = np.zeros_like(nevents2ddata), where=hist2dnbins!=0))
     hists2d = hists2d.assign(chi2 = chi22d)
+    #hists2d = hists2d.assign(pulls = pulls2d) why does this save as a string wtf
 
 else: 
     hists1d = pickle.load(open(hists1ddir, 'rb'))
@@ -299,8 +301,12 @@ else:
 #%% pickles of hist2d 
 #pickle.dump(hists2d, open(f'pickles/hists2d-{data_run}.pkl','wb'))
 #pickle.dump(hists1d, open(f'pickles/hists1d-{data_run}.pkl','wb'))
-hists2d.to_csv(f'csv/hists2d-{data_run}.csv', index=False)
-hists1d.to_csv(f'csv/hists1d-{data_run}.csv', index=False)
+hists2d.to_csv(f'csv/hists2d-splitpull.csv', index=False)
+hists1d.to_csv(f'csv/hists1d-splitpull.csv', index=False)
+
+
+import sys
+sys.exit()
 
 
 os.makedirs(plotdir, exist_ok=True)
@@ -453,7 +459,7 @@ if True:
     minpullval = 0 
     
     # colorbar
-    colors = ['#d0e5d2', '#b84323']#['#1e28e9','#d0e5d2', '#b84323'] 
+    colors = ['#1e28e9','#d0e5d2', '#b84323']#['#d0e5d2', '#b84323']# 
     cmap = mpl.colors.LinearSegmentedColormap.from_list('autodqm scheme', colors, N = 255)
     
     
@@ -466,6 +472,11 @@ if True:
     l = ['emtfTrackOccupancy',   'cscLCTTimingBX0', 'cscDQMOccupancy']
     l = top5chi2 + top5maxpull + l
     
+    #_________________________________________-
+    l = hists2d.histnames
+    #_________________________________________
+
+
     for i,x in enumerate(histnames2d):
         # check if anything in l is in histname2d
         if any(substring in x for substring in l):
@@ -475,7 +486,7 @@ if True:
             yedges = getBinCenter(histedges[1])
             fig, ax = plt.subplots()
             norm = mpl.colors.Normalize(vmin=minpullval, vmax=maxpullval)
-            im = ax.pcolormesh(xedges, yedges, histvals.T, cmap=cmap, shading='auto', norm=norm)
+            im = ax.pcolormesh(xedges, yedges, histvals.T, cmap=cmap, shading='auto')#, norm=norm)
             fig.colorbar(im)
             ax.set_title(x+condition)
             #os.makedirs(f'{plotdir}/pulls2d', exist_ok=True)
@@ -492,7 +503,12 @@ if True:
     
     top5maxpull = hists1d.sort_values(by='maxpull',ascending=False).histnames[:5].to_list()
     l = ['emtfTrackEta']
-    l = top5chi2 + top5maxpull + l                                                  
+    l = top5chi2 + top5maxpull + l
+
+    #_______________________________-
+    l = hists1d.histnames
+    
+    #_________________________________
                                   
     for i,x in enumerate(histnames1d):
         if any(substring in x for substring in l):
