@@ -43,10 +43,10 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     else:
         data_norm = data_raw
 
-    start = time.time()
+    print(f'{histpair.data_name=}')
     pulls = pull(data_raw, ref_list_raw)
-    end = time.time()
-    #print(f'{histpair.data_name}, {end-start}')
+    
+    
 
     ## only fuilled bins used for calculating chi2
     nBinsUsed = np.count_nonzero(np.add(ref_list_raw.mean(axis=0), data_raw)) 

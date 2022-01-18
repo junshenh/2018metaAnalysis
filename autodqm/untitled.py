@@ -305,8 +305,8 @@ hists2d.to_csv(f'csv/hists2d-splitpull.csv', index=False)
 hists1d.to_csv(f'csv/hists1d-splitpull.csv', index=False)
 
 
-import sys
-sys.exit()
+#import sys
+#sys.exit()
 
 
 os.makedirs(plotdir, exist_ok=True)

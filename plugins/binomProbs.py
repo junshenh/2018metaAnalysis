@@ -35,14 +35,13 @@ def calc_pull(D_raw, R_list_raw, tol, optAB):
     for i in R_list_raw: 
         lowStatCond = lowStatCond | (i < low_stat_cut)
     lowStatCond = lowStatCond | (D_raw < low_stat_cut)
-
+    #lowStatCond = np.ones_like(D_raw, dtype=bool)
 
     ## Initialize arrays probHi and probLo with same dimensions as D_raw, values all 0
 
     probHi = np.zeros(np.count_nonzero(lowStatCond))
     probLo = np.zeros(np.count_nonzero(lowStatCond))
 
-    
     for iRef in range(nRef):
         if optAB == 'A':  ## For approach 'A', all reference histograms receive equal weight
             wgt_AB = 1.0 / nRef
@@ -82,20 +81,20 @@ def calc_pull(D_raw, R_list_raw, tol, optAB):
         R_norm = i*intRavg/i.sum()
         pull_highStat.append(sqrtpull(D_norm, R_norm))
 
+    print(f'{pull_highStat=}')
     pull_highStat = np.array(pull_highStat).mean(axis=0)
     
     pull = pull_highStat
-    pull[lowStatCond] = pull_lowStat#[lowStatCond]
+    pull[lowStatCond] = pull_lowStat#[lowStatCond]    
 
+    ## give direction to pull. needed to normalize the data to avg ref
+    pull[R_list_raw.mean() < D_norm]*=-1
 
-
-    ## give direction to pull
-    ## !!!! TODO: normalize this to avg ref before direction !!!!
-    pull[R_list_raw_tol.mean() < D_raw]*=-1
-
+    print(f'{pull=}')
+    print('-----------------------------------')
     return pull
 
-#@jit
+
 def calcPull(prob):
     prob = np.clip(prob, a_min = np.power(0.1,16), a_max=None)## recalc prob so that it's not too small
     pull = np.sqrt(scipy.stats.chi2.ppf(1-prob,1)) ## convert to pull value
@@ -110,5 +109,11 @@ def sqrtpull(data, ref):
     pull = (data - ref) / ((dataErrs[0]**2 + refErrs[1]**2)**0.5)
     cond = data < ref
     pull[cond] = (data[cond] - ref[cond]) / ((dataErrs[1][cond]**2 + refErrs[0][cond]**2)**0.5)
+
+
+    #print(f'{dataErrs[1]=}')
+    #print(f'{refErrs[0]=}')
+    #print(f'{data=}')
+    #print(f'{ref=}')
 
     return pull

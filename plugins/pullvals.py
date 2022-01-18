@@ -38,8 +38,6 @@ def pullvals(histpair,
 
     pulls = pull(data_raw, ref_list_raw)
 
-    #print(f'{histpair.data_name}, {end-start}')
-
     ## only fuilled bins used for calculating chi2
     nBinsUsed = np.count_nonzero(np.add(ref_list_raw.mean(axis=0), data_raw)) 
     chi2 = np.square(pulls).sum()/nBinsUsed if nBinsUsed > 0 else 0
