@@ -519,7 +519,7 @@ if True:
             fig, ax = plt.subplots()
             ax.bar(xedges, histvals, width)
             ax.set_title(x+condition)
-            ax.set_ylim([minpullval, maxpullval])
+            #ax.set_ylim([minpullval, maxpullval])
             #os.makedirs(f'{plotdir}/pulls1d', exist_ok=True)
             fig.savefig(f'{plotdir}/{x}{condition}.png', bbox_inches='tight')#pulls1d/{x}-chi2.png', bbox_inches='tight')
             # plt.show()

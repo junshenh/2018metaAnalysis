@@ -81,7 +81,7 @@ def calc_pull(D_raw, R_list_raw, tol, optAB):
         R_norm = i*intRavg/i.sum()
         pull_highStat.append(sqrtpull(D_norm, R_norm))
 
-    print(f'{pull_highStat=}')
+    #print(f'{pull_highStat=}')
     pull_highStat = np.array(pull_highStat).mean(axis=0)
     
     pull = pull_highStat
@@ -90,8 +90,8 @@ def calc_pull(D_raw, R_list_raw, tol, optAB):
     ## give direction to pull. needed to normalize the data to avg ref
     pull[R_list_raw.mean() < D_norm]*=-1
 
-    print(f'{pull=}')
-    print('-----------------------------------')
+    #print(f'{pull=}')
+    #print('-----------------------------------')
     return pull
 
 
