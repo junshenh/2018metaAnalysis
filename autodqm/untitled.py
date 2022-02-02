@@ -301,12 +301,12 @@ else:
 #%% pickles of hist2d 
 #pickle.dump(hists2d, open(f'pickles/hists2d-{data_run}.pkl','wb'))
 #pickle.dump(hists1d, open(f'pickles/hists1d-{data_run}.pkl','wb'))
-hists2d.to_csv(f'csv/hists2d-splitpull.csv', index=False)
-hists1d.to_csv(f'csv/hists1d-splitpull.csv', index=False)
+hists2d.to_csv(f'csv/hists2d-10refs-goodruns.csv', index=False)
+hists1d.to_csv(f'csv/hists1d-10refs-goodruns.csv', index=False)
 
 
-#import sys
-#sys.exit()
+import sys
+sys.exit()
 
 
 os.makedirs(plotdir, exist_ok=True)

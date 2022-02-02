@@ -21,6 +21,5 @@
     {"path" : "emtfTrackPhiHighQuality"},
     {"path": "cscDQMOccupancy"},
     {"path": "Timing/cscLCTTiming*"}
-
   ]
 }

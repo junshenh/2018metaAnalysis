@@ -43,7 +43,6 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     else:
         data_norm = data_raw
 
-    print(f'{histpair.data_name=}')
     pulls = pull(data_raw, ref_list_raw)
     
     
