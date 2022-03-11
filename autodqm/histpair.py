@@ -9,7 +9,8 @@ class HistPair(object):
 
     def __init__(self, config,
                  data_series, data_sample, data_run, data_name, data_hist,
-                 ref_series, ref_sample, ref_run, ref_name, ref_hist):
+                 ref_series, ref_sample, ref_run, ref_name, ref_hist,
+                 ref_runs_list, ref_hists_list):
 
         self.data_series = data_series
         self.data_sample = data_sample
@@ -22,6 +23,9 @@ class HistPair(object):
         self.ref_run = ref_run
         self.ref_name = ref_name
         self.ref_hist = ref_hist
+        
+        self.ref_hists_list = ref_hists_list
+        self.ref_runs_list = ref_runs_list
 
         self.config = config
         self.comparators = config.get(

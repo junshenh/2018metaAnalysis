@@ -1,0 +1,17 @@
+name: metaStudies
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - awkward
+  - numpy
+  - pandas
+  - python
+  - root
+  - scipy
+  - matplotlib
+  - uproot
+  - pathos
+  
+prefix: /home/chosila/anaconda3/envs/metaStudies
+
