@@ -15,11 +15,13 @@ if __name__ == '__main__':
 
 
 import sys
-sys.path.insert(1, '/home/chosila/Projects/metaAnalysis/autodqm')
+
+sys.path.insert(1, '/afs/cern.ch/user/c/csutanta/Projects/metaAnalysis/autodqm')
 import importlib.util
 #spec = importlib.util.spec_from_file_location('compare_hists', '/home/chosila/Projects/metaAnalysis/autodqm/compare_hists.py')
 #compare_hists = importlib.util.module_from_spec(spec)
 #spec.loader.exec_module(compare_hists)
+
 import pickle
 import matplotlib.pyplot as plt
 import os
@@ -161,7 +163,6 @@ itPhi', 'rpcHitTheta']
         plt.savefig(f'{plotdir}/{plotname}-{condition}.png', bbox_inches='tight')
         plt.close(fig)
     #%%
-
 
 if not loadpkl: 
     ## read the datafile and reffiles from a json 
@@ -439,98 +440,3 @@ makePlot(histdf=hists2d, y='chi2', x='avgdata', ybins=chi22dBins,
 
 #%%
 
-# print(f'maxpull1d: {max(maxpull1d)}, quantile: {np.quantile(maxpull1d, .95)}')
-# print(f'chi21d: {max(chi21d)}, quantile: {np.quantile(chi21d, .95)}')
-# print(f'maxpull2d: {max(maxpulls)}, quantile: {np.quantile(maxpulls, .95)}')
-# print(f'chi22d: {max(chi22d)}, quantile: {np.quantile(chi22d, .95)}')
-# 
-# maxpull1d.sort()
-# maxpulls.sort()
-# chi21d.sort()
-# chi22d.sort()
-# nBinsUsed.sort()
-
-
-
-
-## heatmaps for pulls 
-if True:
-    maxpullval = 9#8.292361075813595
-    minpullval = 0 
-    
-    # colorbar
-    colors = ['#1e28e9','#d0e5d2', '#b84323']#['#d0e5d2', '#b84323']# 
-    cmap = mpl.colors.LinearSegmentedColormap.from_list('autodqm scheme', colors, N = 255)
-    
-    
-    
-    top5chi2 = hists2d.sort_values(by='chi2',ascending=False).histnames[:5].to_list()
-    
-    searchfor = ['cscLCTStrip', 'cscLCTWire', 'cscChamberStrip', 'cscChamberWire', 'rpcChamberPhi', 'rpcChamberTheta', 'rpcHitPhi', 'rpcHitTheta']
-    pullhist2d = hists2d[~hists2d['histnames'].str.contains('|'.join(searchfor))]
-    top5maxpull = pullhist2d.sort_values(by='maxpull',ascending=False).histnames[:5].to_list()
-    l = ['emtfTrackOccupancy',   'cscLCTTimingBX0', 'cscDQMOccupancy']
-    l = top5chi2 + top5maxpull + l
-    
-    #_________________________________________-
-    l = hists2d.histnames
-    #_________________________________________
-
-
-    for i,x in enumerate(histnames2d):
-        # check if anything in l is in histname2d
-        if any(substring in x for substring in l):
-            histvals = pulls2d[i][0]
-            histedges = pulls2d[i][1]
-            xedges = getBinCenter(histedges[0])
-            yedges = getBinCenter(histedges[1])
-            fig, ax = plt.subplots()
-            norm = mpl.colors.Normalize(vmin=minpullval, vmax=maxpullval)
-            im = ax.pcolormesh(xedges, yedges, histvals.T, cmap=cmap, shading='auto')#, norm=norm)
-            fig.colorbar(im)
-            ax.set_title(x+condition)
-            #os.makedirs(f'{plotdir}/pulls2d', exist_ok=True)
-            fig.savefig(f'{plotdir}/{x}{condition}.png', bbox_inches='tight') #'pulls2d/{x}-chi2.png', bbox_inches='tight')
-            # plt.show()
-            plt.close('all')
-    
-    #%%
-    
-    top5chi2 = hists1d.sort_values(by='chi2',ascending=False).histnames[:5].to_list()
-    
-    searchfor = ['cscLCTStrip', 'cscLCTWire', 'cscChamberStrip', 'cscChamberWire', 'rpcChamberPhi', 'rpcChamberTheta', 'rpcHitPhi', 'rpcHitTheta']
-    pullhist1d = hists1d[~hists1d['histnames'].str.contains('|'.join(searchfor))]
-    
-    top5maxpull = hists1d.sort_values(by='maxpull',ascending=False).histnames[:5].to_list()
-    l = ['emtfTrackEta']
-    l = top5chi2 + top5maxpull + l
-
-    #_______________________________-
-    l = hists1d.histnames
-    
-    #_________________________________
-                                  
-    for i,x in enumerate(histnames1d):
-        if any(substring in x for substring in l):
-            histvals = pulls1d[i][0]
-            histedge = pulls1d[i][1]
-            xedges = getBinCenter(histedge)
-            width = histedge[1] - histedge[0]
-            fig, ax = plt.subplots()
-            ax.bar(xedges, histvals, width)
-            ax.set_title(x+condition)
-            ax.set_ylim([minpullval, maxpullval])
-            #os.makedirs(f'{plotdir}/pulls1d', exist_ok=True)
-            fig.savefig(f'{plotdir}/{x}{condition}.png', bbox_inches='tight')#pulls1d/{x}-chi2.png', bbox_inches='tight')
-            # plt.show()
-            plt.close('all')
-            
-            
-    #%%
-    
-    
-    
-    
-            
-    #%%
-    
