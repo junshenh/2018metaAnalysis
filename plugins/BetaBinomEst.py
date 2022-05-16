@@ -98,9 +98,7 @@ def LogGam(z):
 
 
 ## Predicted probability of observing Data / nData given a reference of Ref / nRef
-def Prob(Data, Ref, func, kurt=0):
-    nData = Data.sum()
-    nRef = Ref.sum()
+def Prob(Data, nData, Ref, nRef, func, kurt=0):
     if func == 'Gaus1' or func == 'Gaus2':
         return sci.norm.pdf( Pull(Data, Ref, func) )
     if func == 'BetaB':
@@ -117,7 +115,7 @@ def Prob(Data, Ref, func, kurt=0):
         ## True normalization fails for gamma of very large numbers, i.e. kurt = 0
         ## norm = math.gamma(m_) / (a_ * math.sqrt(math.pi) * math.gamma(m_ - 0.5))
         ## Use normalization of normal distribution instead, for now
-        norm = np.power( StdDev(nData, Ref, nRef, 'BetaB') * math.sqrt(2 * math.pi), -1)
+        norm = np.power(StdDev(nData, Ref, nRef, 'BetaB') * math.sqrt(2 * math.pi), -1)
         return norm * np.power(1 + np.power(Pull(Data, Ref, 'BetaB') / a_, 2), -1.0*m_)
     ## Expression for beta-binomial using definition in terms of gamma functions
     ## https://en.wikipedia.org/wiki/Beta-binomial_distribution#As_a_compound_distribution
@@ -139,29 +137,39 @@ def Prob(Data, Ref, func, kurt=0):
 ## Predicted probability relative to the maximum probability (i.e. at the mean)
 def ProbRel(Data, Ref, func, kurt=0):
     nData = Data.sum()
+    nRef = Ref.sum()
     ## Find the most likely expected data value
-    exp = np.round(Mean(nData, Ref, 'Gaus1'))
+    #exp = np.round(Mean(nData, Ref, 'Gaus1'))
+    exp_up = np.ceil(Mean(nData, Ref, 'Gaus1'))
+    exp_down = np.clip(np.floor(Mean(nData, Ref, 'Gaus1')), a_min=0, a_max=None) # make sure nothing goes below zero
+    
     ## Find the maximum likelihood
-    maxProb  = Prob(exp, Ref, func, kurt)
-    thisProb = Prob(Data, Ref, func, kurt)
+    maxProb_up  = Prob(exp_up, nData, Ref, nRef,func, kurt)
+    maxProb_down = Prob(exp_down, nData, Ref, nRef,func, kurt)
+    maxProb = np.maximum(maxProb_up, maxProb_down)
+    thisProb = Prob(Data, nData, Ref, nRef, func, kurt)
     ## Sanity check to not have relative likelihood > 1
     cond = maxProb < thisProb
-    if any(cond):
+
+    if any(cond.flatten()):        
+        print(f'for ProbRel')
+        print(f'Data: {Data[cond]}\nnData: {nData}\nRef: {Ref[cond]}\nnRef: {nRef}')
+
+    ## make sure check for thisProb < maxProb*0.001 (account for floating point inaccuracies) and just set the ratio to 1 if that is the case 
+    ratio = thisProb/maxProb
+    # cond = thisProb > maxProb*0.001
+    # ratio[cond] = 1 
         
-        print(f'for ProbRel({Data[cond]}, {Ref[cond]}) maxProb <thisProb')
-        #print('\nFor ProbRel(%d, %d, %.2f, %.2f, %s), thisProb = %f, maxProb = %f with exp = %d' % (Data, Ref, func, thisProb, maxProb, exp))
-        sys.exit()
-    return (thisProb / maxProb)
+    return ratio#(thisProb / maxProb)
 
 
 ## Negative log likelihood
 def NLL(prob):
-    prob = -1.0*np.log(prob)
-    prob[prob==0] = 999
-    prob[prob < 0] == -999
+    nllprob = -1.0*np.log(prob, where=(prob>0))
+    nllprob[prob==0] = 999
+    nllprob[prob < 0] == -999
 
-    return prob    
-    
+    return nllprob       
 
 
 ## Convert relative probability to number of standard deviations in normal distribution

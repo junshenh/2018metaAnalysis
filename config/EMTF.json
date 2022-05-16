@@ -20,6 +20,6 @@
     {"path" : "emtfTrackOccupancy"},
     {"path" : "emtfTrackPhiHighQuality"},
     {"path": "cscDQMOccupancy"},
-    {"path": "Timing/cscLCTTiming*"}
+    {"path": "Timing/cscLCTTimingBX*"}
   ]
 }
