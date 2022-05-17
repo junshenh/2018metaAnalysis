@@ -1,6 +1,4 @@
 import sys
-import math
-import datetime
 import numpy as np
 import scipy.stats as sci
 import scipy.special as special 
@@ -110,12 +108,12 @@ def Prob(Data, nData, Ref, nRef, func, kurt=0):
         ## In limit that excess kurtosis is 0, becomes a normal distribution
         if kurt == 0:
             return sci.norm.pdf( Pull(Data, nData, Ref, nRef, 'BetaB') )
-        a_ = math.sqrt(2 + (6 / kurt))  ## Scale parameter 'a'
+        a_ = np.sqrt(2 + (6 / kurt))  ## Scale parameter 'a'
         m_ = 2.5 + (3 / kurt)           ## Shape parameter 'm'
         ## True normalization fails for gamma of very large numbers, i.e. kurt = 0
         ## norm = math.gamma(m_) / (a_ * math.sqrt(math.pi) * math.gamma(m_ - 0.5))
         ## Use normalization of normal distribution instead, for now
-        norm = np.power(StdDev(nData, Ref, nRef, 'BetaB') * math.sqrt(2 * math.pi), -1)
+        norm = np.power(StdDev(nData, Ref, nRef, 'BetaB') * np.sqrt(2 * np.pi), -1)
         return norm * np.power(1 + np.power(Pull(Data, Ref, 'BetaB') / a_, 2), -1.0*m_)
     ## Expression for beta-binomial using definition in terms of gamma functions
     ## https://en.wikipedia.org/wiki/Beta-binomial_distribution#As_a_compound_distribution
@@ -128,7 +126,7 @@ def Prob(Data, nData, Ref, nRef, func, kurt=0):
         ab_ = nRef+2
         logProb  = LogGam(n_+1) + LogGam(k_+a_) + LogGam(n_-k_+b_) + LogGam(ab_)
         logProb -= ( LogGam(k_+1) + LogGam(n_-k_+1) + LogGam(n_+ab_) + LogGam(a_) + LogGam(b_) )
-        return math.exp(logProb)
+        return np.exp(logProb)
 
     print('\nInside Prob, no valid func = %s. Quitting.\n' % func)
     sys.exit()
