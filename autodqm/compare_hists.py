@@ -47,7 +47,7 @@ def process(config_dir, subsystem,
     #pool = ProcessPool(nodes=4)
     #hist_outputs = pool.map(get_hists_outputs, args1, args2) #get_hists_outputs(histpairs, comparator_funcs)#pool.starmap(get_hists_outputs, args)
     #hist_outputs = []
-    pool = multiprocessing.Pool(8)
+    pool = multiprocessing.Pool(1)#8)
     hist_outputs = pool.map(get_hists_outputs, args1)
 
 

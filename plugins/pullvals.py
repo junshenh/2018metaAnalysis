@@ -4,7 +4,8 @@ import numpy as np
 import uproot
 import scipy
 import scipy.stats
-from binomProbs import calc_pull
+import BetaBinomEst
+#from binomProbs import calc_pull
 import time
 
 def comparators():
@@ -18,7 +19,7 @@ def pullvals(histpair,
     """Can handle poisson driven TH2s or generic TProfile2Ds"""
     data_hist = histpair.data_hist
     ## if ref hist is empty, don't include it
-    ref_hists_list = [x for x in histpair.ref_hists_list if x.values().sum() > 0]
+    ref_hists_list = [x for x in histpair.ref_hists_list if np.round(x.values()).sum() > 0]
 
 
     ## check to make sure histogram is TH2    
@@ -26,22 +27,24 @@ def pullvals(histpair,
         return None
 
 
-    data_raw = np.float64(data_hist.values())
-    ref_list_raw = np.array([np.float64(x.values()) for x in ref_hists_list])
-        
+    data_raw = np.round(np.float64(data_hist.values()))
+    ref_list_raw = np.round(np.array([np.float64(x.values()) for x in ref_hists_list]))
+
     ## num entries
     data_hist_Entries = np.sum(data_raw)
-    ref_hist_Entries_avg = ref_list_raw.mean(axis=0).sum()
-    
+
+    nRef = len(ref_hists_list)
+    ref_hist_Entries_avg = ref_list_raw.sum(axis=0)/nRef if (nRef > 0) else np.zeros_like(data_raw) ## using np.mean raises too many warnings about mean of empty slice
+
     # Reject empty histograms
     is_good = data_hist_Entries != 0
 
     pulls = pull(data_raw, ref_list_raw)
 
     ## only fuilled bins used for calculating chi2
-    nBinsUsed = np.count_nonzero(np.add(ref_list_raw.mean(axis=0), data_raw)) 
+    nBinsUsed = np.count_nonzero(np.add(ref_list_raw.sum(axis=0), data_raw)) 
     chi2 = np.square(pulls).sum()/nBinsUsed if nBinsUsed > 0 else 0
-    max_pull = maxPullNorm(pulls, nBinsUsed).max()
+    max_pull = pulls.max() #maxPullNorm(pulls, nBinsUsed).max()
     nBins = data_hist.values().size
     #pulls = maxPullNorm(pulls, nBinsUsed)    
     
@@ -71,29 +74,35 @@ def pullvals(histpair,
     
     
 def pull(D_raw, R_list_raw):
-    ## plan, do all D_norm, R_norm_avg etc. calculations here so that 1d hists also have the same def without need of copy paste
     nRef = len(R_list_raw)
     tol = 0.01
-    if D_raw.sum() > 0 and nRef > 0: 
-        pullA = calc_pull(D_raw, R_list_raw, tol, 'A')
-        ## pullA is used 89% of the time when testing 15 runs. Only pull A will be used to speed upcalc
-        # pullB = calc_pull(D_raw, R_list_raw, tol, 'B')
-
-        #value = b if a > 10 else c
-        pull = pullA #if (pullA*pullA).sum() < (pullB*pullB).sum() else pullB
+    prob = np.zeros_like(D_raw)
+    if (D_raw.sum() <= 0) or (np.array(R_list_raw.flatten()).sum() <= 0):
+        pull = np.zeros_like(D_raw)
+    else:
+        #pull = calc_pull(D_raw, R_list_raw, tol, 'A')
+        for R_raw in R_list_raw:
+            prob += BetaBinomEst.ProbRel(D_raw, R_raw, 'BetaB')
+        prob*=1/nRef
+        pull = BetaBinomEst.Sigmas(prob)
         
-    else: 
-        pull = np.zeros_like( D_raw )
-    
     return pull
+
+# def calc_pull(D_raw, R_list_raw, tol, optAB):
+#     nRef = len(R_list_raw)  ## Number of reference histograms                                                                   
+#     prob = np.zeros_like(D_raw)
+#     for R_raw in R_list_raw:
+#         prob += BetaBinomEst.ProbRel(D_raw, R_raw, 'BetaB')
+#     prob*=1/nRef
+#     pull = BetaBinomEst.Sigmas(prob)
+#     return pull
         
     
-def maxPullNorm(maxPull, nBinsUsed):
-    sign = np.sign(maxPull)
-    probGood = 1-scipy.stats.chi2.cdf(np.power(maxPull,2),1) # will give the same result as ROOT.TMath.Prob
-    ## probGood = ROOT.TMath.Prob(np.power(maxPull, 2), 1)
-    probBadNorm = np.power((1-probGood), nBinsUsed)
-    val = np.minimum(probBadNorm, 1 - np.power(0.1,16))
-    return np.sqrt(scipy.stats.chi2.ppf(val,1))*sign
+# def maxPullNorm(maxPull, nBinsUsed):
+#     sign = np.sign(maxPull)
+#     probGood = 1-scipy.stats.chi2.cdf(np.power(maxPull,2),1) # will give the same result as ROOT.TMath.Prob
+#     probBadNorm = np.power((1-probGood), nBinsUsed)
+#     val = np.minimum(probBadNorm, 1 - np.power(0.1,16))
+#     return np.sqrt(scipy.stats.chi2.ppf(val,1))*sign
     
     

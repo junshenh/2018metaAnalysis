@@ -172,4 +172,7 @@ def NLL(prob):
 
 ## Convert relative probability to number of standard deviations in normal distribution
 def Sigmas(probRel):
+
+    if np.isnan(probRel).any(): 
+        print('bitch')
     return np.sqrt(2.0*NLL(probRel))
