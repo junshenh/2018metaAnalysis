@@ -269,13 +269,13 @@ if not loadpkl:
     hists1d = hists1d.rename(columns={0: 'histnames'})
     hists1d = hists1d.assign(ks = kss)
     hists1d = hists1d.assign(nbins = hist1dnbins)
-    hists1d = hists1d.assign(neventsdata = nevents1ddata)
-    hists1d = hists1d.assign(neventsref = nevents1dref)
+    #hists1d = hists1d.assign(neventsdata = nevents1ddata)
+    #hists1d = hists1d.assign(neventsref = nevents1dref)
     hists1d = hists1d.assign(chi2 = chi21d)
     hists1d = hists1d.assign(maxpull = maxpull1d)
     hists1d = hists1d.assign(run=run1d)
-    hists1d = hists1d.assign(avgdata = np.divide(nevents1ddata, hist1dnbins))
-    hists1d = hists1d.assign(avgref = np.divide(nevents1dref,hist1dnbins))
+    #hists1d = hists1d.assign(avgdata = np.divide(nevents1ddata, hist1dnbins))
+    #hists1d = hists1d.assign(avgref = np.divide(nevents1dref,hist1dnbins))
     hists1d = hists1d.assign(chi2 = chi21d)
     # hists1d = hists1d.assign(pulls = pulls1d) why does this save as a string wtf
     
@@ -283,12 +283,14 @@ if not loadpkl:
     hists2d = hists2d.rename(columns={0: 'histnames'})
     hists2d = hists2d.assign(nbins = hist2dnbins)
     hists2d = hists2d.assign(maxpull= maxpulls)
-    hists2d = hists2d.assign(neventsdata = nevents2ddata)
-    hists2d = hists2d.assign(neventsref = nevents2dref)
+    #hists2d = hists2d.assign(neventsdata = nevents2ddata)
+    #hists2d = hists2d.assign(neventsref = nevents2dref)
     hists2d = hists2d.assign(chi2 = chi22d)
     hists2d = hists2d.assign(run = run2d)
-    hists2d = hists2d.assign(avgdata = np.divide(nevents2ddata, hist2dnbins, out = np.zeros_like(nevents2ddata), where=hist2dnbins!=0))
-    hists2d = hists2d.assign(avgref = np.divide(nevents2dref, hist2dnbins, out = np.zeros_like(nevents2ddata), where=hist2dnbins!=0))
+    #hists2d = hists2d.assign(avgdata = np.divide(nevents2ddata, hist2dnbins, out = np.zeros_like(nevents2ddata), where=hist2dnbins!=0))
+    #print(f'{nevents2dref=}')
+
+    #hists2d = hists2d.assign(avgref = np.divide(nevents2dref, hist2dnbins, out = np.zeros_like(nevents2ddata), where=hist2dnbins!=0))
     hists2d = hists2d.assign(chi2 = chi22d)
     #hists2d = hists2d.assign(pulls = pulls2d) why does this save as a string wtf
 
@@ -298,17 +300,16 @@ else:
     data_run = hists1d['run'][0]
 
 
+print('did we get here')
+
 #%% pickles of hist2d 
 #pickle.dump(hists2d, open(f'pickles/hists2d-{data_run}.pkl','wb'))
 #pickle.dump(hists1d, open(f'pickles/hists1d-{data_run}.pkl','wb'))
-hists2d.to_csv(f'csv/hists2d-10refs-goodruns.csv', index=False)
-hists1d.to_csv(f'csv/hists1d-10refs-goodruns.csv', index=False)
-
+hists2d.to_csv(f'csv/hists2d-10refs-goodruns_betaEst.csv', index=False)
+hists1d.to_csv(f'csv/hists1d-10refs-goodruns_betaEst.csv', index=False)
 
 import sys
 sys.exit()
-
-
 os.makedirs(plotdir, exist_ok=True)
 
 
