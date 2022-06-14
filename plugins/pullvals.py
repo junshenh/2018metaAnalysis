@@ -17,7 +17,9 @@ def pullvals(histpair,
     """Can handle poisson driven TH2s or generic TProfile2Ds"""
     data_hist = histpair.data_hist
     ## if ref hist is empty, don't include it
-    ref_hists_list = [x for x in histpair.ref_hists_list if x.values.sum() > 0]
+    for i in histpair.ref_hists_list:
+        print(i.values().shape)
+    ref_hists_list = [x for x in histpair.ref_hists_list if x.values().sum() > 0]
 
 
     ## check to make sure histogram is TH2    
@@ -26,7 +28,7 @@ def pullvals(histpair,
 
 
     data_raw = np.float64(data_hist.values)
-    ref_list_raw = np.array([np.float64(x.values) for x in ref_hists_list])
+    ref_list_raw = np.array([np.float64(x.values()) for x in ref_hists_list])
         
     ## num entries
     data_hist_Entries = np.sum(data_raw)

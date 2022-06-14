@@ -299,8 +299,8 @@ else:
 #%% pickles of hist2d 
 #pickle.dump(hists2d, open(f'pickles/hists2d-{data_run}.pkl','wb'))
 #pickle.dump(hists1d, open(f'pickles/hists1d-{data_run}.pkl','wb'))
-hists2d.to_csv(f'csv/hists2d-{data_run}.csv', index=False)
-hists1d.to_csv(f'csv/hists1d-{data_run}.csv', index=False)
+hists2d.to_csv(f'csv/hists2d-badrun-EMTF.csv', index=False)
+hists1d.to_csv(f'csv/hists1d-badrun-EMTF.csv', index=False)
 
 
 os.makedirs(plotdir, exist_ok=True)
