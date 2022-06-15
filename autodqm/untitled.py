@@ -305,8 +305,8 @@ print('did we get here')
 #%% pickles of hist2d 
 #pickle.dump(hists2d, open(f'pickles/hists2d-{data_run}.pkl','wb'))
 #pickle.dump(hists1d, open(f'pickles/hists1d-{data_run}.pkl','wb'))
-hists2d.to_csv(f'csv/hists2d-10refs-goodruns_betaEst.csv', index=False)
-hists1d.to_csv(f'csv/hists1d-10refs-goodruns_betaEst.csv', index=False)
+hists2d.to_csv(f'csv/hists2d-10refs-badruns-EMTF.csv', index=False)
+hists1d.to_csv(f'csv/hists1d-10refs-badruns-EMTF.csv', index=False)
 
 import sys
 sys.exit()
