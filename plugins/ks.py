@@ -5,7 +5,7 @@ import ROOT
 #from autodqm.plugin_results import PluginResults
 from plugin_results import PluginResults
 import numpy as np
-from pullvals import pull#, maxPullNorm
+from pullvals import pull, maxPullNorm
 import scipy
 import scipy.stats
 import time
@@ -27,18 +27,18 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
 
     data_raw = np.round(np.float64(data_hist.values()))
     ref_list_raw = np.round(np.array([np.float64(x.values()) for x in ref_hists_list]))
-        
+
     ## num entries
     data_hist_Entries = np.sum(data_raw)
     ref_hist_Entries = ref_list_raw.mean(axis=0).sum()
-    
+
     is_good = data_hist_Entries > 0
-    
-    ## looks like bigger values result in ks test working a little better  
+
+    ## looks like bigger values result in ks test working a little better
     ref_list_norm = np.array(ref_list_raw)#np.array([x*1/x.sum() for x in ref_list_raw])
     ref_norm_avg = ref_list_norm.mean(axis=0)
-    
-    if is_good: 
+
+    if is_good:
         data_norm = data_raw * ref_norm_avg.sum()/data_raw.sum()
     else:
         data_norm = data_raw
@@ -46,15 +46,15 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     pulls = pull(data_raw, ref_list_raw)
 
     ## only fuilled bins used for calculating chi2
-    nBinsUsed = np.count_nonzero(np.add(ref_list_raw.mean(axis=0), data_raw)) 
+    nBinsUsed = np.count_nonzero(np.add(ref_list_raw.mean(axis=0), data_raw))
     chi2 = np.square(pulls).sum()/nBinsUsed if nBinsUsed > 0 else 0
-    max_pull = pulls.max()#maxPullNorm(pulls, nBinsUsed).max()
+    max_pull = maxPullNorm(np.amax(pulls), nBinsUsed).max()
     nBins = data_hist.values().size
-    
+
     kslist = []
 
 
-    for ref_norm in ref_list_norm: 
+    for ref_norm in ref_list_norm:
         kslist.append(scipy.stats.kstest(ref_norm, data_norm)[0])
     ks = np.mean(kslist)
 
@@ -62,7 +62,7 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
 
     canv = None
     artifacts = [pulls]
-    
+
     histedges = data_hist.to_numpy()[1]
 
     info = {
@@ -82,7 +82,7 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
         artifacts=artifacts)
 
 #%%
-  
+
 
 def draw_same(data_hist, data_run, ref_hist, ref_run):
     # Set up canvas
@@ -137,6 +137,6 @@ def draw_same(data_hist, data_run, ref_hist, ref_run):
     ref_text.Draw()
 
     c.Update()
-    artifacts = [data_hist, data_text] 
+    artifacts = [data_hist, data_text]
     #artifacts = [data_hist, ref_hist, data_text, ref_text]
     return c, artifacts

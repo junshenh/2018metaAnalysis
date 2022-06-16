@@ -5,7 +5,6 @@ import uproot
 import scipy
 import scipy.stats
 import BetaBinomEst
-#from binomProbs import calc_pull
 import time
 
 def comparators():
@@ -22,7 +21,7 @@ def pullvals(histpair,
     ref_hists_list = [x for x in histpair.ref_hists_list if np.round(x.values()).sum() > 0]
 
 
-    ## check to make sure histogram is TH2    
+    ## check to make sure histogram is TH2
     if not "2" in str(type(data_hist)): #or not "2" in str(type(ref_hist)):
         return None
 
@@ -42,12 +41,11 @@ def pullvals(histpair,
     pulls = pull(data_raw, ref_list_raw)
 
     ## only fuilled bins used for calculating chi2
-    nBinsUsed = np.count_nonzero(np.add(ref_list_raw.sum(axis=0), data_raw)) 
+    nBinsUsed = np.count_nonzero(np.add(ref_list_raw.sum(axis=0), data_raw))
     chi2 = np.square(pulls).sum()/nBinsUsed if nBinsUsed > 0 else 0
-    max_pull = pulls.max() #maxPullNorm(pulls, nBinsUsed).max()
+    max_pull = maxPullNorm(np.amax(pulls), nBinsUsed)
     nBins = data_hist.values().size
-    #pulls = maxPullNorm(pulls, nBinsUsed)    
-    
+
     histedges = (data_hist.to_numpy()[1], data_hist.to_numpy()[2])
 
     info = {
@@ -57,22 +55,22 @@ def pullvals(histpair,
         'Ref_Entries': ref_hist_Entries_avg,
         'nBinsUsed' : nBinsUsed,
         'nBins' : nBins,
-        'new_pulls' : (pulls, histedges) 
-        
+        'new_pulls' : (pulls, histedges)
+
     }
-    
+
     artifacts = [pulls, 'data_text', 'ref_text']
-    c = ROOT.TCanvas('c', 'Pull') 
+    c = ROOT.TCanvas('c', 'Pull')
     is_outlier = is_good and (chi2 > chi2_cut or abs(max_pull) > pull_cut)
-    
+
     return PluginResults(
         c,
         show=is_outlier,
         info=info,
         artifacts=artifacts)
-    
-    
-    
+
+
+
 def pull(D_raw, R_list_raw):
     nRef = len(R_list_raw)
     tol = 0.01
@@ -85,24 +83,29 @@ def pull(D_raw, R_list_raw):
             prob += BetaBinomEst.ProbRel(D_raw, R_raw, 'BetaB')
         prob*=1/nRef
         pull = BetaBinomEst.Sigmas(prob)
-        
+
     return pull
 
-# def calc_pull(D_raw, R_list_raw, tol, optAB):
-#     nRef = len(R_list_raw)  ## Number of reference histograms                                                                   
-#     prob = np.zeros_like(D_raw)
-#     for R_raw in R_list_raw:
-#         prob += BetaBinomEst.ProbRel(D_raw, R_raw, 'BetaB')
-#     prob*=1/nRef
-#     pull = BetaBinomEst.Sigmas(prob)
-#     return pull
-        
-    
-# def maxPullNorm(maxPull, nBinsUsed):
-#     sign = np.sign(maxPull)
-#     probGood = 1-scipy.stats.chi2.cdf(np.power(maxPull,2),1) # will give the same result as ROOT.TMath.Prob
-#     probBadNorm = np.power((1-probGood), nBinsUsed)
-#     val = np.minimum(probBadNorm, 1 - np.power(0.1,16))
-#     return np.sqrt(scipy.stats.chi2.ppf(val,1))*sign
-    
-    
+def maxPullNorm(maxPull, nBinsUsed, cutoff=pow(10,-15)):
+    sign = np.sign(maxPull)
+    ## sf (survival function) better than 1-cdf for large pulls (no precision error)
+    probGood = scipy.stats.chi2.sf(np.power(min(abs(maxPull), 37), 2), 1)
+
+    ## Use binomial approximation for low probs (accurate within 1%)
+    if nBinsUsed * probGood < 0.01:
+        probGoodNorm = nBinsUsed * probGood
+    else:
+        probGoodNorm = 1 - np.power(1 - probGood, nBinsUsed)
+
+    ## Use logarithmic approximation for very low probs
+    if probGoodNorm < cutoff:
+        pullNorm = np.sqrt(2 * (np.log(2) - np.log(probGoodNorm) - 3)) * sign
+    else:
+        pullNorm = np.sqrt(scipy.stats.chi2.ppf(1-probGoodNorm, 1)) * sign
+
+
+    if np.isinf(pullNorm):
+        print(f'{probGoodNorm=}')
+        print(f'{nBinsUsed=}')
+        print(f'{maxPull=}')
+    return pullNorm
