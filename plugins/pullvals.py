@@ -46,7 +46,7 @@ def pullvals(histpair,
     chi2 = np.square(pulls).sum()/nBinsUsed if nBinsUsed > 0 else 0
     max_pull = pulls.max() #maxPullNorm(pulls, nBinsUsed).max()
     nBins = data_hist.values().size
-    #pulls = maxPullNorm(pulls, nBinsUsed)    
+    pulls = maxPullNorm(pulls, nBinsUsed)    
     
     histedges = (data_hist.to_numpy()[1], data_hist.to_numpy()[2])
 
@@ -98,11 +98,11 @@ def pull(D_raw, R_list_raw):
 #     return pull
         
     
-# def maxPullNorm(maxPull, nBinsUsed):
-#     sign = np.sign(maxPull)
-#     probGood = 1-scipy.stats.chi2.cdf(np.power(maxPull,2),1) # will give the same result as ROOT.TMath.Prob
-#     probBadNorm = np.power((1-probGood), nBinsUsed)
-#     val = np.minimum(probBadNorm, 1 - np.power(0.1,16))
-#     return np.sqrt(scipy.stats.chi2.ppf(val,1))*sign
+def maxPullNorm(maxPull, nBinsUsed):
+    sign = np.sign(maxPull)
+    probGood = 1-scipy.stats.chi2.cdf(np.power(maxPull,2),1) # will give the same result as ROOT.TMath.Prob
+    probBadNorm = np.power((1-probGood), nBinsUsed)
+    val = np.minimum(probBadNorm, 1 - np.power(0.1,16))
+    return np.sqrt(scipy.stats.chi2.ppf(val,1))*sign
     
     
