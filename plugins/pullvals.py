@@ -1,4 +1,4 @@
-import ROOT
+
 from plugin_results import PluginResults
 import numpy as np
 import uproot
@@ -65,7 +65,7 @@ def pullvals(histpair,
     }
 
     artifacts = [pulls, 'data_text', 'ref_text']
-    c = ROOT.TCanvas('c', 'Pull')
+    c = None
     is_outlier = is_good and (chi2 > chi2_cut or abs(max_pull) > pull_cut)
 
     return PluginResults(
