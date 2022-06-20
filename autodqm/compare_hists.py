@@ -43,7 +43,7 @@ def process(config_dir, subsystem,
 
     args1 = [(x, comparator_funcs) for x in histpairs]
     #args2 = comparator_funcs#{y:comparator_funcs[y] for x in histpairs for y in comparator_funcs}
-    
+
     #pool = ProcessPool(nodes=4)
     #hist_outputs = pool.map(get_hists_outputs, args1, args2) #get_hists_outputs(histpairs, comparator_funcs)#pool.starmap(get_hists_outputs, args)
     #hist_outputs = []
@@ -53,39 +53,39 @@ def process(config_dir, subsystem,
 
     # with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
     #     futures = []
-    #     import time 
+    #     import time
     #     start = time.time()
     #     for arg in args1:
     #         futures.append(executor.submit(get_hists_outputs, arg))
-    #     
+    #
     #     for future in concurrent.futures.as_completed(futures):
     #         hist_outputs.append(future.result())
     #     print(f'future loop: {time.time() - start}')
-    
-    ## have to multiprocess this so many hists can run at once 
+
+    ## have to multiprocess this so many hists can run at once
     # for hp in histpairs:
     #     try:
     #         comparators = [(c, comparator_funcs[c]) for c in hp.comparators]
     #     except KeyError as e:
     #         raise error("Comparator {} was not found.".format(str(e)))
-    # 
+    #
     #     for comp_name, comparator in comparators:
-    # 
+    #
     #         result_id = identifier(hp, comp_name)
     #         pdf_path = '{}/pdfs/{}.pdf'.format(output_dir, result_id)
-    # 
+    #
     #         results = comparator(hp, **hp.config)
-    # 
+    #
     #         # Continue if no results
     #         if not results:
     #             continue
-    # 
+    #
     #         hists = list()
-    # 
+    #
     #         for i in results.root_artifacts:
     #             if isinstance(i, np.ndarray): #i.InheritsFrom('TH2') or i.InheritsFrom('TH1'):
     #                 hists.append(i)
-    # 
+    #
     #         # Make json
     #         info = {
     #             'id': result_id,
@@ -96,7 +96,7 @@ def process(config_dir, subsystem,
     #             'artifacts': results.root_artifacts,
     #             'hists' : hists
     #         }
-    # 
+    #
     #         hist_outputs.append(info)
 
     return hist_outputs
@@ -114,19 +114,19 @@ def get_hists_outputs(histpair_comp):
 
     for comp_name, comparator in comparators:
         result_id = identifier(hp, comp_name)
-        
+
         results = comparator(hp, **hp.config)
-        
+
         # Continue if no results
         if not results:
             continue
 
         hists = list()
-        
+
         for i in results.root_artifacts:
             if isinstance(i, np.ndarray): #i.InheritsFrom('TH2') or i.InheritsFrom('TH1'):
                 hists.append(i)
-        
+
         # Make json
         info = {
             'id': result_id,
@@ -155,20 +155,20 @@ def compile_histpairs(config_dir, subsystem,
     ref_files_list = [uproot.open(x) for x in ref_list]
 
     histPairs = []
-    
+
     histlist = []
 
     for hconf in conf_list:
         # Get name of hist in root file
         h = str(hconf["path"].split("/")[-1])
         # Get parent directory of hist
-        
+
         gdir = str(hconf["path"].split(h)[0])
 
         data_dirname = "{0}{1}".format(main_gdir.format(data_run), gdir)
         ref_dirname = "{0}{1}".format(main_gdir.format(ref_run), gdir)
         ref_dirnames_list = ["{0}{1}".format(main_gdir.format(x), gdir) for x in ref_runs_list]
-        
+
         data_dir = data_file[data_dirname[:-1]]
         ref_dir = ref_file[ref_dirname[:-1]]
         ref_dirs_list = [x[y[:-1]] for x,y in zip(ref_files_list, ref_dirnames_list)]
@@ -187,12 +187,12 @@ def compile_histpairs(config_dir, subsystem,
 
         data_keys = [x for x in data_dir.keys()]
         ref_keys = [x for x in ref_dir.keys()]
-        
-        
+
+
 
         valid_names = []
-    
-            
+
+
         # Add existing histograms that match h
         if "*" not in h:
              if h in [str(keys)[0:-2] for keys in data_keys] and h in [str(keys)[0:-2] for keys in ref_keys]:
@@ -204,14 +204,14 @@ def compile_histpairs(config_dir, subsystem,
                  ref_hists_list = [x[h] for x in ref_dirs_list]
                  hPair = HistPair(hconf,
                                   data_series, data_sample, data_run, str(h), data_hist,
-                                  ref_series, ref_sample, ref_run, str(h), ref_hist, 
+                                  ref_series, ref_sample, ref_run, str(h), ref_hist,
                                   ref_runs_list, ref_hists_list)
                  histPairs.append(hPair)
         else:
             # Check entire directory for files matching wildcard (Throw out wildcards with / in them as they are not plottable)
             for name in data_keys:
 
-                if h.split("*")[0] in str(name) and name in ref_keys and not "<" in str(name):   
+                if h.split("*")[0] in str(name) and name in ref_keys and not "<" in str(name):
                     if ('/' not in name[:-2]):
                         try:
                             data_hist = data_dir[name[:-2]]
@@ -221,7 +221,7 @@ def compile_histpairs(config_dir, subsystem,
                         ref_hists_list = [x[name[:-2]] for x in ref_dirs_list]
                         hPair = HistPair(hconf,
                                          data_series, data_sample, data_run, str(name[:-2]), data_hist,
-                                         ref_series, ref_sample, ref_run, str(name[:-2]), ref_hist, 
+                                         ref_series, ref_sample, ref_run, str(name[:-2]), ref_hist,
                                          ref_runs_list, ref_hists_list)
                         histPairs.append(hPair)
 
@@ -242,12 +242,12 @@ def load_comparators(plugin_dir):
         if modname[-3:] == '.py':
             modname = modname[:-3]
         try:
-            sys.path.append('/afs/cern.ch/user/c/csutanta/Projects/metaAnalysis/plugins')#'/home/chosila/Projects/metaAnalysis/plugins')
+            #sys.path.append('/afs/cern.ch/user/c/csutanta/Projects/metaAnalysis/plugins')#'/home/chosila/Projects/metaAnalysis/plugins')
             # mod = __import__(f"{modname}")
             if modname == 'ks':
-                import ks as mod
+                from plugins import ks as mod
             elif modname == 'pullvals':
-                import pullvals as mod
+                from plugins import pullvals as mod
             else:
                 continue
 

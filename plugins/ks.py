@@ -5,7 +5,8 @@ import ROOT
 #from autodqm.plugin_results import PluginResults
 from plugin_results import PluginResults
 import numpy as np
-from pullvals import pull, maxPullNorm
+#from pullvals import pull, maxPullNorm
+from plugins import pullvals
 import scipy
 import scipy.stats
 import time
@@ -43,12 +44,18 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     else:
         data_norm = data_raw
 
-    pulls = pull(data_raw, ref_list_raw)
 
     ## only fuilled bins used for calculating chi2
     nBinsUsed = np.count_nonzero(np.add(ref_list_raw.mean(axis=0), data_raw))
-    chi2 = np.square(pulls).sum()/nBinsUsed if nBinsUsed > 0 else 0
-    max_pull = maxPullNorm(np.amax(pulls), nBinsUsed).max()
+
+    if nBinsUsed > 0:
+        pulls = pullvals.pull(data_raw, ref_list_raw)
+        chi2 = np.square(pulls).sum()/nBinsUsed if nBinsUsed > 0 else 0
+        max_pull = pullvals.maxPullNorm(np.amax(pulls), nBinsUsed).max()
+    else:
+        pulls = np.zeros_like(data_raw)
+        chi2 = 0
+        max_pull = 0
     nBins = data_hist.values().size
 
     kslist = []

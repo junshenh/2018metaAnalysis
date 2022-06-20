@@ -4,7 +4,7 @@ import numpy as np
 import uproot
 import scipy
 import scipy.stats
-import BetaBinomEst
+from plugins import BetaBinomEst
 import time
 
 def comparators():
@@ -36,14 +36,20 @@ def pullvals(histpair,
     ref_hist_Entries_avg = ref_list_raw.sum(axis=0)/nRef if (nRef > 0) else np.zeros_like(data_raw) ## using np.mean raises too many warnings about mean of empty slice
 
     # Reject empty histograms
-    is_good = data_hist_Entries != 0
-
-    pulls = pull(data_raw, ref_list_raw)
+    is_good = (data_hist_Entries != 0)
 
     ## only fuilled bins used for calculating chi2
     nBinsUsed = np.count_nonzero(np.add(ref_list_raw.sum(axis=0), data_raw))
-    chi2 = np.square(pulls).sum()/nBinsUsed if nBinsUsed > 0 else 0
-    max_pull = maxPullNorm(np.amax(pulls), nBinsUsed)
+
+    if nBinsUsed > 0:
+        pulls = pull(data_raw, ref_list_raw)
+        chi2 = np.square(pulls).sum()/nBinsUsed if nBinsUsed > 0 else 0
+        max_pull = maxPullNorm(np.amax(pulls), nBinsUsed)
+    else:
+        pulls = np.zeros_like(data_raw)
+        chi2 = 0
+        max_pull = 0
+
     nBins = data_hist.values().size
 
     histedges = (data_hist.to_numpy()[1], data_hist.to_numpy()[2])
@@ -56,7 +62,6 @@ def pullvals(histpair,
         'nBinsUsed' : nBinsUsed,
         'nBins' : nBins,
         'new_pulls' : (pulls, histedges)
-
     }
 
     artifacts = [pulls, 'data_text', 'ref_text']
@@ -97,15 +102,20 @@ def maxPullNorm(maxPull, nBinsUsed, cutoff=pow(10,-15)):
     else:
         probGoodNorm = 1 - np.power(1 - probGood, nBinsUsed)
 
+
+    print('----------------------------------')
+    print(f'{maxPull=}')
+    print(f'{sign=}')
+    print(f'{nBinsUsed=}')
+    print(f'{probGood=}')
+    print(f'{probGoodNorm=}')
+
     ## Use logarithmic approximation for very low probs
     if probGoodNorm < cutoff:
         pullNorm = np.sqrt(2 * (np.log(2) - np.log(probGoodNorm) - 3)) * sign
     else:
         pullNorm = np.sqrt(scipy.stats.chi2.ppf(1-probGoodNorm, 1)) * sign
 
+    print(f'{pullNorm=}')
 
-    if np.isinf(pullNorm):
-        print(f'{probGoodNorm=}')
-        print(f'{nBinsUsed=}')
-        print(f'{maxPull=}')
     return pullNorm
