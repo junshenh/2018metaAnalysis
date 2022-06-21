@@ -149,6 +149,7 @@ itPhi', 'rpcHitTheta']
         plt.savefig(f'{plotdir}/{plotname}-{condition}.png', bbox_inches='tight')
         plt.close(fig)
 
+<<<<<<< HEAD
 
 ### ------ start of script ------- ###
 ## read the datafile and reffiles from a json

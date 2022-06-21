@@ -12,17 +12,20 @@ import uproot
 import numpy as np
 #from autodqm.histpair import HistPair
 from histpair import HistPair
+
 # sys.path.insert(1, '/Users/si_sutantawibul1/Projects/AutoDQM/plugins')
 import time
 #from pathos.pools import ProcessPool
 #import concurrent.futures
 import multiprocessing
 
+
 def process(config_dir, subsystem,
             data_series, data_sample, data_run, data_path,
             ref_series, ref_sample, ref_run, ref_path,
             ref_list, ref_runs_list,
             output_dir='./out/', plugin_dir='./plugins/'):
+
 
     # Ensure no graphs are drawn to screen and no root messages are sent to
     # terminal
@@ -242,7 +245,6 @@ def load_comparators(plugin_dir):
         if modname[-3:] == '.py':
             modname = modname[:-3]
         try:
-            #sys.path.append('/afs/cern.ch/user/c/csutanta/Projects/metaAnalysis/plugins')#'/home/chosila/Projects/metaAnalysis/plugins')
             # mod = __import__(f"{modname}")
             if modname == 'ks':
                 from plugins import ks as mod
