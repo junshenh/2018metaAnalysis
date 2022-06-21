@@ -267,8 +267,9 @@ hists2d = hists2d.assign(run = run2d)
 hists2d = hists2d.assign(chi2 = chi22d)
 
 ## get result into csv format
-hists2d.to_csv(f'csv/hists2d-316928-717.csv', index=False)
-hists1d.to_csv(f'csv/hists1d-316928-717.csv', index=False)
+os.makedirs('csv', exist_ok=True)
+hists2d.to_csv(f'csv/hists2d.csv', index=False)
+hists1d.to_csv(f'csv/hists1d.csv', index=False)
 
 #import sys
 #sys.exit()
