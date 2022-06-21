@@ -6,7 +6,7 @@
     {"path": "cscDQMOccupancy",
       "norm_type": "row",
       "always_show": true},
-    {"path": "Timing/cscLCTTiming*",
+    {"path": "Timing/cscLCTTimingBX*",
       "norm_type": "row"},
     {"path": "emtfTrackEta"},
     {"path": "emtfTrackMode"},
@@ -19,7 +19,6 @@
     {"path" : "emtfTrackBX"},
     {"path" : "emtfTrackOccupancy"},
     {"path" : "emtfTrackPhiHighQuality"},
-    {"path": "cscDQMOccupancy"},
-    {"path": "Timing/cscLCTTiming*"}
+    {"path": "cscDQMOccupancy"}
   ]
 }

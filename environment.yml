@@ -12,6 +12,5 @@ dependencies:
   - matplotlib
   - uproot
   - pathos
-  
-prefix: /home/chosila/anaconda3/envs/metaStudies
 
+prefix: /home/chosila/anaconda3/envs/metaStudies
