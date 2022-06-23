@@ -268,8 +268,8 @@ hists2d = hists2d.assign(chi2 = chi22d)
 
 ## get result into csv format
 os.makedirs('csv', exist_ok=True)
-hists2d.to_csv(f'csv/hists2d.csv', index=False)
-hists1d.to_csv(f'csv/hists1d.csv', index=False)
+hists2d.to_csv(f'csv/hists2d_325159-099.csv', index=False)
+hists1d.to_csv(f'csv/hists1d_325159-099.csv', index=False)
 
 #import sys
 #sys.exit()
@@ -282,7 +282,7 @@ if True:
     figsize = (12,7)
 
     # colorbar
-    colors = ['#1e28e9','#d0e5d2', '#b84323']#['#d0e5d2', '#b84323']#
+    colors = ['#d0e5d2', '#b84323']#['#1e28e9','#d0e5d2', '#b84323']##
     cmap = mpl.colors.LinearSegmentedColormap.from_list('autodqm scheme', colors, N = 255)
 
     top5chi2 = hists2d.sort_values(by='chi2',ascending=False).histnames[:5].to_list()

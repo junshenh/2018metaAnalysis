@@ -22,7 +22,7 @@ def pullvals(histpair,
 
 
     ## check to make sure histogram is TH2
-    if not "2" in str(type(data_hist)): #or not "2" in str(type(ref_hist)):
+    if not "TH2" in str(type(data_hist)): #or not "2" in str(type(ref_hist)):
         return None
 
 
@@ -52,6 +52,7 @@ def pullvals(histpair,
 
     nBins = data_hist.values().size
 
+    print(type(data_hist))
     histedges = (data_hist.to_numpy()[1], data_hist.to_numpy()[2])
 
     info = {
@@ -88,6 +89,10 @@ def pull(D_raw, R_list_raw):
             prob += BetaBinomEst.ProbRel(D_raw, R_raw, 'BetaB')
         prob*=1/nRef
         pull = BetaBinomEst.Sigmas(prob)
+
+    ## get normalized data to get sign on pull
+    #D_norm = D_raw * R_list_raw.mean(axis=0).sum()/D_raw.sum()
+    #pull = pull*np.sign(D_norm-Rlist_raw.mean(axis=0))
 
     return pull
 
