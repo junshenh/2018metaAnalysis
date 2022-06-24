@@ -52,7 +52,6 @@ def pullvals(histpair,
 
     nBins = data_hist.values().size
 
-    print(type(data_hist))
     histedges = (data_hist.to_numpy()[1], data_hist.to_numpy()[2])
 
     info = {
@@ -107,20 +106,10 @@ def maxPullNorm(maxPull, nBinsUsed, cutoff=pow(10,-15)):
     else:
         probGoodNorm = 1 - np.power(1 - probGood, nBinsUsed)
 
-
-    print('----------------------------------')
-    print(f'{maxPull=}')
-    print(f'{sign=}')
-    print(f'{nBinsUsed=}')
-    print(f'{probGood=}')
-    print(f'{probGoodNorm=}')
-
     ## Use logarithmic approximation for very low probs
     if probGoodNorm < cutoff:
         pullNorm = np.sqrt(2 * (np.log(2) - np.log(probGoodNorm) - 3)) * sign
     else:
         pullNorm = np.sqrt(scipy.stats.chi2.ppf(1-probGoodNorm, 1)) * sign
-
-    print(f'{pullNorm=}')
 
     return pullNorm

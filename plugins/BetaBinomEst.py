@@ -57,12 +57,22 @@ def LogGam(z):
 
 ## Predicted probability of observing Data / nData given a reference of Ref / nRef
 def Prob(Data, nData, Ref, nRef, func, kurt=0):
+
+    ##### !!!!!!!!!!!!!!! TODO !!!!!!!!!!!!!!!!!!!!!!!
+    ####### TOLERANCE HERE ######
+    tol = 0.01
+    scaleTol = np.power(1 + np.power(Ref * tol**2, 2), -0.5)
+    intRef_tol = (scaleTol * Ref)
+    Ref_tol = Ref * scaleTol
+
+
     if func == 'Gaus1' or func == 'Gaus2':
         return sci.norm.pdf( Pull(Data, Ref, func) )
     if func == 'BetaB':
         ## https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.betabinom.html
         ## Note that n = nData, alpha = Ref+1, and beta = nRef-Ref+1, alpha+beta = nRef+2
-        return sci.betabinom.pmf(Data, nData, Ref+1, nRef-Ref+1)
+        #return sci.betabinom.pmf(Data, nData, Ref+1, nRef-Ref+1)
+        return sci.betabinom.pmf(Data, nData, Ref_tol + 1, intRef_tol - Ref_tol + 1)
     ## Expression for beta-binomial using definition in terms of gamma functions
     ## https://en.wikipedia.org/wiki/Beta-binomial_distribution#As_a_compound_distribution
     if func == 'Gamma':
@@ -105,7 +115,6 @@ def ProbRel(Data, Ref, func, kurt=0):
     ratio = thisProb/maxProb
     cond = thisProb > maxProb*0.001
     ratio[cond] = 1
-
     return ratio #thisProb / maxProb
 
 
