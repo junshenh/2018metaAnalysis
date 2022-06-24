@@ -22,7 +22,7 @@ def pullvals(histpair,
 
 
     ## check to make sure histogram is TH2
-    if not "2" in str(type(data_hist)): #or not "2" in str(type(ref_hist)):
+    if not "TH2" in str(type(data_hist)): #or not "2" in str(type(ref_hist)):
         return None
 
 
@@ -89,6 +89,10 @@ def pull(D_raw, R_list_raw):
         prob*=1/nRef
         pull = BetaBinomEst.Sigmas(prob)
 
+    ## get normalized data to get sign on pull
+    #D_norm = D_raw * R_list_raw.mean(axis=0).sum()/D_raw.sum()
+    #pull = pull*np.sign(D_norm-Rlist_raw.mean(axis=0))
+
     return pull
 
 def maxPullNorm(maxPull, nBinsUsed, cutoff=pow(10,-15)):
@@ -102,20 +106,10 @@ def maxPullNorm(maxPull, nBinsUsed, cutoff=pow(10,-15)):
     else:
         probGoodNorm = 1 - np.power(1 - probGood, nBinsUsed)
 
-
-    print('----------------------------------')
-    print(f'{maxPull=}')
-    print(f'{sign=}')
-    print(f'{nBinsUsed=}')
-    print(f'{probGood=}')
-    print(f'{probGoodNorm=}')
-
     ## Use logarithmic approximation for very low probs
     if probGoodNorm < cutoff:
         pullNorm = np.sqrt(2 * (np.log(2) - np.log(probGoodNorm) - 3)) * sign
     else:
         pullNorm = np.sqrt(scipy.stats.chi2.ppf(1-probGoodNorm, 1)) * sign
-
-    print(f'{pullNorm=}')
 
     return pullNorm

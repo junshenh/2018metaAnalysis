@@ -23,7 +23,7 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     ref_hists_list = [x for x in histpair.ref_hists_list if np.round(x.values()).sum() > 0]
 
     # check for 1d hists and that refs are not empty
-    if "1" not in str(type(data_hist)) :
+    if "TH1" not in str(type(data_hist)) :
         return None
 
     data_raw = np.round(np.float64(data_hist.values()))
