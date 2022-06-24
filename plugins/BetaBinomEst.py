@@ -62,7 +62,7 @@ def Prob(Data, nData, Ref, nRef, func, kurt=0):
     ####### TOLERANCE HERE ######
     tol = 0.01
     scaleTol = np.power(1 + np.power(Ref * tol**2, 2), -0.5)
-    intRef_tol = (scaleTol * Ref)
+    nRef_tol = (scaleTol * nRef)
     Ref_tol = Ref * scaleTol
 
 
@@ -72,7 +72,7 @@ def Prob(Data, nData, Ref, nRef, func, kurt=0):
         ## https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.betabinom.html
         ## Note that n = nData, alpha = Ref+1, and beta = nRef-Ref+1, alpha+beta = nRef+2
         #return sci.betabinom.pmf(Data, nData, Ref+1, nRef-Ref+1)
-        return sci.betabinom.pmf(Data, nData, Ref_tol + 1, intRef_tol - Ref_tol + 1)
+        return sci.betabinom.pmf(Data, nData, Ref_tol + 1, nRef_tol - Ref_tol + 1)
     ## Expression for beta-binomial using definition in terms of gamma functions
     ## https://en.wikipedia.org/wiki/Beta-binomial_distribution#As_a_compound_distribution
     if func == 'Gamma':
@@ -111,10 +111,12 @@ def ProbRel(Data, Ref, func, kurt=0):
         print(f'for ProbRel')
         print(f'Data: {Data[cond]}\nnData: {nData}\nRef: {Ref[cond]}\nnRef: {nRef}')
 
+
     ## make sure check for thisProb < maxProb*0.001 (account for floating point inaccuracies) and just set the ratio to 1 if that is the case
     ratio = thisProb/maxProb
     cond = thisProb > maxProb*0.001
     ratio[cond] = 1
+
     return ratio #thisProb / maxProb
 
 
