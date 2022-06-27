@@ -57,14 +57,10 @@ def LogGam(z):
 
 ## Predicted probability of observing Data / nData given a reference of Ref / nRef
 def Prob(Data, nData, Ref, nRef, func, kurt=0):
-
-    ##### !!!!!!!!!!!!!!! TODO !!!!!!!!!!!!!!!!!!!!!!!
-    ####### TOLERANCE HERE ######
     tol = 0.01
     scaleTol = np.power(1 + np.power(Ref * tol**2, 2), -0.5)
     nRef_tol = (scaleTol * nRef)
     Ref_tol = Ref * scaleTol
-
 
     if func == 'Gaus1' or func == 'Gaus2':
         return sci.norm.pdf( Pull(Data, Ref, func) )
@@ -114,7 +110,7 @@ def ProbRel(Data, Ref, func, kurt=0):
 
     ## make sure check for thisProb < maxProb*0.001 (account for floating point inaccuracies) and just set the ratio to 1 if that is the case
     ratio = thisProb/maxProb
-    cond = thisProb > maxProb*0.001
+    cond = thisProb > maxProb
     ratio[cond] = 1
 
     return ratio #thisProb / maxProb
