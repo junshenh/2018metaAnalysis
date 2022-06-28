@@ -85,15 +85,14 @@ def pull(D_raw, R_list_raw):
     if (D_raw.sum() <= 0) or (np.array(R_list_raw.flatten()).sum() <= 0):
         pull = np.zeros_like(D_raw)
     else:
-        #pull = calc_pull(D_raw, R_list_raw, tol, 'A')
         for R_raw in R_list_raw:
             prob += ProbRel(D_raw, R_raw, 'BetaB')
         prob*=1/nRef
         pull = Sigmas(prob)
 
     ## get normalized data to get sign on pull
-    #D_norm = D_raw * R_list_raw.mean(axis=0).sum()/D_raw.sum()
-    #pull = pull*np.sign(D_norm-Rlist_raw.mean(axis=0))
+    D_norm = D_raw * R_list_raw.mean(axis=0).sum()/D_raw.sum()
+    pull = pull*np.sign(D_norm-R_list_raw.mean(axis=0))
 
     return pull
 
@@ -224,7 +223,6 @@ def ProbRel(Data, Ref, func, kurt=0):
 
     ## make sure check for thisProb < maxProb*0.001 (account for floating point inaccuracies) and just set the ratio to 1 if that is the case
     ratio = thisProb/maxProb
-    cond = thisProb > maxProb
     ratio[cond] = 1
 
 
