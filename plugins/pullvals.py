@@ -49,9 +49,6 @@ def pullvals(histpair,
         chi2 = 0
         max_pull = 0
 
-
-    print(pulls)
-
     nBins = data_hist.values().size
 
     histedges = (data_hist.to_numpy()[1], data_hist.to_numpy()[2])
@@ -107,11 +104,7 @@ def maxPullNorm(maxPull, nBinsUsed, cutoff=pow(10,-15)):
     else:
         probGoodNorm = 1 - np.power(1 - probGood, nBinsUsed)
 
-    ## Use logarithmic approximation for very low probs
-    if probGoodNorm < cutoff:
-        pullNorm = np.sqrt(2 * (np.log(2) - np.log(probGoodNorm) - 3)) * sign
-    else:
-        pullNorm = np.sqrt(stats.chi2.ppf(1-probGoodNorm, 1)) * sign
+    pullNorm = Sigmas(probGoodNorm)
 
     return pullNorm
 
@@ -226,14 +219,6 @@ def ProbRel(Data, Ref, func, kurt=0):
     ratio[cond] = 1
 
 
-    print('data: ', Data)
-    print('ref: ', Ref)
-    print('maxProb: ', maxProb)
-    print('thisPRob: ', thisProb)
-    print('ratio: ', ratio)
-
-
-
     return ratio #thisProb / maxProb
 
 
@@ -248,4 +233,5 @@ def NLL(prob):
 
 ## Convert relative probability to number of standard deviations in normal distribution
 def Sigmas(probRel):
-    return np.sqrt(2.0*NLL(probRel))
+    probRef = np.maximum(probRel, 10E-300)
+    return np.sqrt((stats.chi2.isf(probRel,1)))

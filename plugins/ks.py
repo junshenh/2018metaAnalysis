@@ -49,9 +49,6 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     nBinsUsed = np.count_nonzero(np.add(ref_list_raw.mean(axis=0), data_raw))
 
 
-    print(histpair.data_name)
-
-
     if nBinsUsed > 0:
         pulls = pullvals.pull(data_raw, ref_list_raw)
         chi2 = np.square(pulls).sum()/nBinsUsed
@@ -61,9 +58,6 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
         chi2 = 0
         max_pull = 0
     nBins = data_hist.values().size
-
-    print('pulls: ', pulls)
-
 
     kslist = []
 
