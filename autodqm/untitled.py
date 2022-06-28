@@ -268,11 +268,11 @@ hists2d = hists2d.assign(chi2 = chi22d)
 
 ## get result into csv format
 os.makedirs('csv', exist_ok=True)
-hists2d.to_csv(f'csv/hists2d_325159-099.csv', index=False)
-hists1d.to_csv(f'csv/hists1d_325159-099.csv', index=False)
-
-#import sys
-#sys.exit()
+jsonname = args.jsonfile.split(",")[0]
+hists2d.to_csv(f'csv/histS2d_{jsonname}_{subsystem}.csv', index=False)
+hists1d.to_csv(f'csv/hists1d_{jsonname}_{subsystem}.csv', index=False)
+import sys
+sys.exit()
 os.makedirs(plotdir, exist_ok=True)
 
 ## heatmaps for pulls
@@ -335,6 +335,10 @@ if True:
             ax.bar(xedges, histvals, width)
             ax.set_title(x+condition)
             ax.set_ylim([minpullval, maxpullval])
+            if x == 'emtfTracknHits':
+                for a, b in zip(xedges, histvals):
+                    ax.text(a, b, b)
+                    print("loading")
             #os.makedirs(f'{plotdir}/pulls1d', exist_ok=True)
             fig.savefig(f'{plotdir}/{x}{condition}.png', bbox_inches='tight')#pulls1d/{x}-chi2.png', bbox_inches='tight')
             # plt.show()
