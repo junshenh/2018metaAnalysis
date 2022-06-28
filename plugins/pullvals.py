@@ -233,5 +233,5 @@ def NLL(prob):
 
 ## Convert relative probability to number of standard deviations in normal distribution
 def Sigmas(probRel):
-    probRef = np.maximum(probRel, 10E-300)
+    probRel = np.maximum(probRel, 10E-300)
     return np.sqrt((stats.chi2.isf(probRel,1)))
