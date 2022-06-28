@@ -48,9 +48,10 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     ## only fuilled bins used for calculating chi2
     nBinsUsed = np.count_nonzero(np.add(ref_list_raw.mean(axis=0), data_raw))
 
+
     if nBinsUsed > 0:
         pulls = pullvals.pull(data_raw, ref_list_raw)
-        chi2 = np.square(pulls).sum()/nBinsUsed if nBinsUsed > 0 else 0
+        chi2 = np.square(pulls).sum()/nBinsUsed
         max_pull = pullvals.maxPullNorm(np.amax(pulls), nBinsUsed).max()
     else:
         pulls = np.zeros_like(data_raw)

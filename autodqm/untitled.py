@@ -7,8 +7,6 @@ Created on Sun Jan  3 23:41:47 2021
 """
 
 import sys
-import importlib.util
-import pickle
 import matplotlib.pyplot as plt
 import os
 import numpy as np
@@ -22,16 +20,11 @@ import argparse
 
 parser = argparse.ArgumentParser()
 group = parser.add_mutually_exclusive_group(required=True)
-group.add_argument('--loadpkl', dest='loadpkl', type =bool, help='whether to load hist dfs from pickle. This xor --jsonfile flag is required')
 group.add_argument('--jsonfile', dest='jsonfile', type=str, help='name of the jsonfile of runs to use')
 
 args = parser.parse_args()
 
 condition = ''
-
-hists1ddir = 'pickles/hists1d-goodruns.pkl'
-hists2ddir = 'pickles/hists2d-goodruns.pkl'
-loadpkl = args.loadpkl
 
 config_dir = '../config'
 subsystem = 'EMTF'
@@ -40,9 +33,6 @@ data_sample = 'L1T'
 ref_series = 'Run2018'
 ref_sample = 'L1T'
 
-ynbins = 20
-xnbins = 20
-props = dict(boxstyle='round', facecolor='white')
 plotdir = f'plots/betaEst'
 
 def getBinCenter(arr):
@@ -50,104 +40,6 @@ def getBinCenter(arr):
     for i in range(len(arr)-1):
         arrCen.append((arr[i+1]+arr[i])/2)
     return arrCen
-
-def generateLabel(df, y, x):
-    df = df.sort_values(by=[y], ascending=False)
-    for col in df.columns: ## convert to float bc it breaks if int
-        if not isinstance(df[col].iloc[0], str):
-            df[col] = df[col].astype(float)
-    txtstr = '\n'.join((
-                        f'{df["histnames"].iloc[0]} :({df[x].iloc[0]:.4}, {df[y].iloc[0]:.4})',
-                        f'{df["histnames"].iloc[1]} :({df[x].iloc[1]:.4}, {df[y].iloc[1]:.4})',
-                        f'{df["histnames"].iloc[2]} :({df[x].iloc[2]:.4}, {df[y].iloc[2]:.4})',
-                        f'{df["histnames"].iloc[3]} :({df[x].iloc[3]:.4}, {df[y].iloc[3]:.4})',
-                        f'{df["histnames"].iloc[4]} :({df[x].iloc[4]:.4}, {df[y].iloc[4]:.4})',
-                        ))
-    return txtstr
-
-def makePlot(histdf, y, x, ybins, xlabel, ylabel, title, plotname):
-    '''
-    - histdf (dataFrame) - hist1d or hist2d
-    - y (str) - col to be plotted in y
-    - x (str) - col to be plot in x
-    - ybins (np.array) - array of bin edges
-    - xlabel (str)
-    - ylabel (str)
-    - figname (str) - name to save the fig as 1
-    '''
-
-    if y =='ks':
-        fig, ax = plt.subplots()
-        xbins = np.linspace(0, max(histdf[x]), xnbins)
-        if 'nevents' in x:
-            xmin, xmax = np.log2(1), np.log2(max(histdf[x]))
-        elif 'nbins' in x:
-            xmin, xmax = np.log2(1), np.log2(max(histdf[x]))
-        elif 'avg' in x:
-            xmin, xmax = np.log2(2**-5), np.log2(max(histdf[x]))
-        # ymin, ymax = np.log2(2**-10), np.log2(max(histdf[y]))
-        logxbins = np.logspace(xmin, xmax, xnbins, base=2)
-        logybins = ybins#np.logspace(ymin, ymax, xnbins, base=2)
-
-        searchfor = ['cscLCTStrip', 'cscLCTWire', 'cscChamberStrip', 'cscChamberWire', 'rpcChamberPhi', 'rpcChamberTheta', 'rpcH\
-itPhi', 'rpcHitTheta']
-        histdfshrt = histdf[~histdf['histnames'].str.contains('|'.join(searchfor))]
-
-        ## clip the bottoms so to include underflow
-        ## this was needed for log-binning but no longer needed but shouldnt affect anything.
-        xvals = np.clip(a = histdfshrt[x], a_min = logxbins[0] , a_max = logxbins[-1])
-        yvals = np.clip(a = histdfshrt[y], a_min = logybins[0] , a_max = logybins[-1])
-
-        counts, _, _ = np.histogram2d(xvals, yvals, bins=(logxbins, logybins))
-        ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm(), shading='auto')
-        ax.set_xscale('log', base=2)
-        # ax.set_yscale('log', base=2)
-
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(ylabel)
-
-        ax.set_title(title + condition)
-        textstr = generateLabel(df=histdfshrt, y=y, x=x)
-        ax.text(1.25*max(histdf[x]), logybins[10], textstr, bbox=props)
-        plt.savefig(f'{plotdir}/{plotname}-chi2.png', bbox_inches='tight')
-        plt.close(fig)
-    else:
-        fig, ax = plt.subplots()
-        xbins = np.linspace(0, max(histdf[x]), xnbins)
-        if 'nevents' in x:
-            xmin, xmax = np.log2(1), np.log2(max(histdf[x]))
-        elif 'nbins' in x:
-            xmin, xmax = np.log2(1), np.log2(max(histdf[x]))
-        elif 'avg' in x:
-            xmin, xmax = np.log2(2**-5), np.log2(max(histdf[x]))
-        #ymin, ymax = np.log2(2**-10), np.log2(max(histdf[y]))
-        logxbins = np.logspace(xmin, xmax, xnbins, base=2)
-        logybins = ybins#np.logspace(ymin, ymax, xnbins, base=2)
-        #maxval = ybins[-2]
-        #ytoplot = np.clip(histdf[y], a_min=0, a_max=maxval)
-
-        ## remove “cscLCTStrip”, “cscLCTWire”, “cscChamberStrip”, “cscChamberWire”, “rpcChamberPhi”, “rpcChamberTheta”, “rpcHitPhi”, and “rpcHitTheta”
-        ## from pull scatter plots
-        #if 'pull' in y:
-        searchfor = ['cscLCTStrip', 'cscLCTWire', 'cscChamberStrip', 'cscChamberWire', 'rpcChamberPhi', 'rpcChamberTheta', 'rpcHitPhi', 'rpcHitTheta']
-        histdfshrt = histdf[~histdf['histnames'].str.contains('|'.join(searchfor))]
-
-        xvals = np.clip(a = histdfshrt[x], a_min = logxbins[0] , a_max = logxbins[-1])
-        yvals = np.clip(a = histdfshrt[y], a_min = logybins[0] , a_max = logybins[-1])
-        counts, _, _ = np.histogram2d(xvals, yvals, bins=(logxbins, logybins))
-
-        ax.pcolormesh(logxbins, logybins, counts.T, norm=mpl.colors.LogNorm(), shading='auto')
-        ax.set_xscale('log', base=2)
-        # ax.set_yscale('log', base=2)
-
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(ylabel)
-        ax.set_title(title+condition)
-
-        textstr = generateLabel(df=histdfshrt, y=y, x=x)
-        ax.text(1.25*max(histdf[x]), logybins[9], textstr, bbox=props)
-        plt.savefig(f'{plotdir}/{plotname}-{condition}.png', bbox_inches='tight')
-        plt.close(fig)
 
 ### ------ start of script ------- ###
 ## read the datafile and reffiles from a json
@@ -268,21 +160,23 @@ hists2d = hists2d.assign(chi2 = chi22d)
 
 ## get result into csv format
 os.makedirs('csv', exist_ok=True)
-jsonname = args.jsonfile.split(",")[0]
-hists2d.to_csv(f'csv/histS2d_{jsonname}_{subsystem}.csv', index=False)
+jsonname = args.jsonfile.split(".")[0]
+hists2d.to_csv(f'csv/hists2d_{jsonname}_{subsystem}.csv', index=False)
 hists1d.to_csv(f'csv/hists1d_{jsonname}_{subsystem}.csv', index=False)
-import sys
-sys.exit()
+
+#import sys
+#sys.exit()
+
 os.makedirs(plotdir, exist_ok=True)
 
 ## heatmaps for pulls
 if True:
     maxpullval = 40
-    minpullval = 0
+    minpullval = -40
     figsize = (12,7)
 
     # colorbar
-    colors = ['#d0e5d2', '#b84323']#['#1e28e9','#d0e5d2', '#b84323']##
+    colors = ['#1e28e9','#d0e5d2', '#b84323']##['#d0e5d2', '#b84323']#
     cmap = mpl.colors.LinearSegmentedColormap.from_list('autodqm scheme', colors, N = 255)
 
     top5chi2 = hists2d.sort_values(by='chi2',ascending=False).histnames[:5].to_list()
@@ -329,6 +223,7 @@ if True:
         if any(substring in x for substring in l):
             histvals = pulls1d[i][0]
             histedge = pulls1d[i][1]
+
             xedges = getBinCenter(histedge)
             width = histedge[1] - histedge[0]
             fig, ax = plt.subplots(figsize=figsize)
@@ -343,138 +238,3 @@ if True:
             fig.savefig(f'{plotdir}/{x}{condition}.png', bbox_inches='tight')#pulls1d/{x}-chi2.png', bbox_inches='tight')
             # plt.show()
             plt.close('all')
-
-
-# maxpull1d_max = 40
-# maxpull1d_min = 0
-# maxpull2d_max = 40
-# maxpull2d_min = 0
-# chi21d_max = 150
-# chi21d_min = 0
-# chi22d_max = 150
-# chi22d_min = 0
-#
-#
-# ksBins = np.linspace(0, 1, ynbins)
-# maxpull1dBins = np.linspace(maxpull1d_min, maxpull1d_max, ynbins)
-# maxpull2dBins = np.linspace(maxpull2d_min, maxpull2d_max, ynbins)
-# chi21dBins = np.linspace(chi21d_min, chi22d_max, ynbins)
-# chi22dBins = np.linspace(chi22d_min, chi22d_max, ynbins)
-
-
-#------------------------------ ks/pv/chi2 vs nbins ------------------------------
-# makePlot(histdf=hists1d, y='ks', x='nbins', ybins=ksBins, xlabel='nbins',
-#          ylabel='ks', title=f'data:{data_run}',
-#          plotname='ks_nbins')
-# #%%
-# makePlot(histdf=hists1d, y='maxpull', x='nbins', ybins=maxpull1dBins, xlabel='nbins',
-#          ylabel='Max pull (1D)', title=f'data:{data_run}',
-#          plotname='maxpull-nbins-1d')
-#
-# makePlot(histdf=hists2d, y='maxpull', x='nbins', ybins=maxpull2dBins, xlabel='nbins',
-#          ylabel='Max pull (2D)', title=f'data:{data_run}',
-#          plotname='maxpull-nbins-2d')
-#
-# makePlot(histdf=hists1d, y='chi2', x='nbins', ybins=chi21dBins, xlabel='nbins',
-#          ylabel='Chi2 (1D)', title=f'data:{data_run}',
-#          plotname='chi2-nbins-1d')
-#
-# makePlot(histdf=hists2d, y='chi2', x='nbins', ybins=chi22dBins, xlabel='nbins',
-#          ylabel='Chi2 (2D)', title=f'data:{data_run}',
-#          plotname='chi2-nbins-2d')
-
-
-#------------------------------ ks/pv vs nevents ------------------------------
-# makePlot(histdf=hists1d, y='ks', x='neventsdata', ybins=ksBins, xlabel='# of events (data)',
-#          ylabel='ks', title=f'data:{data_run}', plotname='data_ks-nevents')
-
-# makePlot(histdf=hists1d, y='ks', x='neventsref', ybins=ksBins,
-#          xlabel='# of events (ref)', ylabel='ks',
-#          title=f'ref:{ref_run}', plotname='ref_ks-nevents')
-
-# makePlot(histdf=hists1d, y='maxpull', x='neventsdata', ybins=maxpull1dBins,
-#          xlabel='# of events (data)', ylabel='Max pull (1D)',
-#          title=f'data:{data_run}', plotname='data_maxpull-nevents-1d')
-
-# makePlot(histdf=hists1d, y='maxpull', x='neventsref', ybins=maxpullBins,
-#          xlabel='# of events (ref)', ylabel='Max pull (1D)',
-#          title=f'ref:{ref_run}', plotname='ref_maxpull-nevents-1d')
-
-# makePlot(histdf=hists2d, y='maxpull', x='neventsdata', ybins=maxpull2dBins,
-#          xlabel='# of events (data)', ylabel='Max pull (2D)',
-#          title=f'data:{data_run}', plotname='data_maxpull-nevents-2d')
-
-# makePlot(histdf=hists2d, y='maxpull', x='neventsref', ybins=maxpullBins,
-#          xlabel='# of events (ref)', ylabel='Max pull (2D)',
-#          title=f'ref:{ref_run}', plotname='ref_maxpull-nevents-2d')
-
-# makePlot(histdf=hists1d, y='chi2', x='neventsdata', ybins=chi21dBins,
-#          xlabel='# of events (data)', ylabel='chi2 (1D)',
-#          title=f'data:{data_run}', plotname='data_chi2-nevents-1d')
-
-# makePlot(histdf=hists1d, y='chi2', x='neventsref', ybins=chi21dBins,
-#          xlabel='# of events (ref)', ylabel='Chi2 (1D)',
-#          title=f'ref:{ref_run}', plotname='ref_chi2-nevents-1d')
-
-# makePlot(histdf=hists2d, y='chi2', x='neventsdata', ybins=chi22dBins,
-#          xlabel='# of events (data)', ylabel='Chi2 (2D)',
-#          title=f'data:{data_run}', plotname='data_chi2-nevents-2d')
-
-# makePlot(histdf=hists2d, y='chi2', x='neventsref', ybins=chi22dBins,
-#          xlabel='# of events (ref)', ylabel='Chi2 (2D)',
-#          title=f'ref:{ref_run}', plotname='ref_chi2-nevents-2d')
-#-----------------------------------------------------------------------------
-
-
-##------------------------------ ks/pv vs avg events per bin ------------------
-
-# makePlot(histdf=hists1d, y='ks', x='avgdata', ybins=ksBins,
-#          xlabel='average event per bin (data)', ylabel='ks',
-#          title=f'data:{data_run}', plotname='data_ks-avg')
-
-# makePlot(histdf=hists1d, y='ks', x='avgref', ybins=ksBins,
-#          xlabel='average event per bin (ref)', ylabel='ks',
-#          title=f'ref:{ref_run}', plotname='ref_ks-avg')
-
-# makePlot(histdf=hists1d, y='maxpull', x='avgdata', ybins=maxpull1dBins,
-#          xlabel='average event per bin (data)', ylabel='Max pull (1D)',
-#          title=f'data:{data_run}', plotname='data_maxpull-avg-1d')
-
-# makePlot(histdf=hists1d, y='maxpull', x='avgref', ybins=maxpullBins,
-#          xlabel='average event per bin (ref)', ylabel='Max pull (1D)',
-#          title=f'ref:{ref_run}', plotname='ref_maxpull-avg-1d')
-
-# makePlot(histdf=hists2d, y='maxpull', x='avgdata', ybins=maxpull2dBins,
-#          xlabel='average event per bin (data)', ylabel='Max pull (2D)',
-#          title=f'data:{data_run}', plotname='data_maxpull-avg-2d')
-
-# makePlot(histdf=hists2d, y='maxpull', x='avgref', ybins=maxpullBins,
-#          xlabel='average event per bin (ref)', ylabel='Max pull (2D)',
-#          title=f'ref:{ref_run}', plotname='ref_maxpull-avg-2d')
-
-# makePlot(histdf=hists1d, y='chi2', x='avgdata', ybins=chi21dBins,
-#          xlabel='average events per bin (data)', ylabel='Chi2 (1D)',
-#          title=f'data:{data_run}', plotname='data_chi2-avg-1d')
-
-# makePlot(histdf=hists1d, y='chi2', x='avgref', ybins=chi22dBins,
-#          xlabel='average event per bin (ref)', ylabel='Chi2 (1D)',
-#          title=f'ref:{ref_run}', plotname='ref_chi2-avg-1d')
-
-# makePlot(histdf=hists2d, y='chi2', x='avgdata', ybins=chi22dBins,
-#          xlabel='average events per bin (data)', ylabel='Chi2 (2D)',
-#          title=f'data:{data_run}', plotname='data_chi2-avg-2d')
-
-# makePlot(histdf=hists2d, y='chi2', x='avgref', ybins=chi22dBins,
-#          xlabel='average events per bin (ref)', ylabel='Chi2 (2D)',
-#          title=f'ref:{ref_run}', plotname='ref_chi2-avg-2d')
-
-# print(f'maxpull1d: {max(maxpull1d)}, quantile: {np.quantile(maxpull1d, .95)}')
-# print(f'chi21d: {max(chi21d)}, quantile: {np.quantile(chi21d, .95)}')
-# print(f'maxpull2d: {max(maxpulls)}, quantile: {np.quantile(maxpulls, .95)}')
-# print(f'chi22d: {max(chi22d)}, quantile: {np.quantile(chi22d, .95)}')
-#
-# maxpull1d.sort()
-# maxpulls.sort()
-# chi21d.sort()
-# chi22d.sort()
-# nBinsUsed.sort()
