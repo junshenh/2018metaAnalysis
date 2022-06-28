@@ -164,14 +164,14 @@ jsonname = args.jsonfile.split(".")[0]
 hists2d.to_csv(f'csv/hists2d_{jsonname}_{subsystem}.csv', index=False)
 hists1d.to_csv(f'csv/hists1d_{jsonname}_{subsystem}.csv', index=False)
 
-import sys
-sys.exit()
+#import sys
+#sys.exit()
 os.makedirs(plotdir, exist_ok=True)
 
 ## heatmaps for pulls
 if True:
     maxpullval = 40
-    minpullval = 0
+    minpullval = -40
     figsize = (12,7)
 
     # colorbar
