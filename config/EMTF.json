@@ -18,7 +18,6 @@
     {"path" : "cscLCTOccupancy"},
     {"path" : "emtfTrackBX"},
     {"path" : "emtfTrackOccupancy"},
-    {"path" : "emtfTrackPhiHighQuality"},
-    {"path": "cscDQMOccupancy"}
+    {"path" : "emtfTrackPhiHighQuality"}
   ]
 }
