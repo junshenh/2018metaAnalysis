@@ -17,6 +17,7 @@ def pullvals(histpair,
     """Can handle poisson driven TH2s or generic TProfile2Ds"""
     data_hist = histpair.data_hist
     ## if ref hist is empty, don't include it
+
     ref_hists_list = [x for x in histpair.ref_hists_list if np.round(x.values()).sum() > 0]
 
 
@@ -209,15 +210,14 @@ def ProbRel(Data, Ref, func, kurt=0):
     ## Sanity check to not have relative likelihood > 1
     cond = maxProb < thisProb
 
-    if any(cond.flatten()):
-        print(f'for ProbRel')
-        print(f'Data: {Data[cond]}\nnData: {nData}\nRef: {Ref[cond]}\nnRef: {nRef}')
 
+    #if any(cond.flatten()):
+    #    print(f'for ProbRel')
+    #    print(f'Data: {Data[cond]}\nnData: {nData}\nRef: {Ref[cond]}\nnRef: {nRef}')
 
     ## make sure check for thisProb < maxProb*0.001 (account for floating point inaccuracies) and just set the ratio to 1 if that is the case
     ratio = thisProb/maxProb
     ratio[cond] = 1
-
 
     return ratio #thisProb / maxProb
 
