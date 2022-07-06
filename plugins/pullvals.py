@@ -82,7 +82,7 @@ def pull(D_raw, R_list_raw):
     prob = np.zeros_like(D_raw)
     if (D_raw.sum() <= 0) or (np.array(R_list_raw.flatten()).sum() <= 0):
         pull = np.zeros_like(D_raw)
-        D_norm = 1.0
+        D_norm = 0.0
 
     else:
         for R_raw in R_list_raw:
