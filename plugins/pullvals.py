@@ -41,7 +41,7 @@ def pullvals(histpair,
     ## only fuilled bins used for calculating chi2
     nBinsUsed = np.count_nonzero(np.add(ref_list_raw.sum(axis=0), data_raw))
 
-    if nBinsUsed > 0:
+    if nBinsUsed > 0 and nRef > 0:
         pulls = pull(data_raw, ref_list_raw)
         chi2 = np.square(pulls).sum()/nBinsUsed if nBinsUsed > 0 else 0
         max_pull = maxPullNorm(np.amax(pulls), nBinsUsed)
@@ -93,10 +93,6 @@ def pull(D_raw, R_list_raw):
         D_norm = D_raw * R_list_raw.mean(axis=0).sum()/D_raw.sum()
 
     pull = pull*np.sign(D_norm-R_list_raw.mean(axis=0))
-
-    print(R_list_raw)
-    print('------------------')
-
 
     return pull
 
