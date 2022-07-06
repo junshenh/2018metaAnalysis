@@ -45,62 +45,9 @@ def process(config_dir, subsystem,
     comparator_funcs = load_comparators(plugin_dir)
 
     args1 = [(x, comparator_funcs) for x in histpairs]
-    #args2 = comparator_funcs#{y:comparator_funcs[y] for x in histpairs for y in comparator_funcs}
-
-    #pool = ProcessPool(nodes=4)
-    #hist_outputs = pool.map(get_hists_outputs, args1, args2) #get_hists_outputs(histpairs, comparator_funcs)#pool.starmap(get_hists_outputs, args)
-    #hist_outputs = []
     pool = multiprocessing.Pool(1)#8)
     hist_outputs = pool.map(get_hists_outputs, args1)
 
-
-    # with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-    #     futures = []
-    #     import time
-    #     start = time.time()
-    #     for arg in args1:
-    #         futures.append(executor.submit(get_hists_outputs, arg))
-    #
-    #     for future in concurrent.futures.as_completed(futures):
-    #         hist_outputs.append(future.result())
-    #     print(f'future loop: {time.time() - start}')
-
-    ## have to multiprocess this so many hists can run at once
-    # for hp in histpairs:
-    #     try:
-    #         comparators = [(c, comparator_funcs[c]) for c in hp.comparators]
-    #     except KeyError as e:
-    #         raise error("Comparator {} was not found.".format(str(e)))
-    #
-    #     for comp_name, comparator in comparators:
-    #
-    #         result_id = identifier(hp, comp_name)
-    #         pdf_path = '{}/pdfs/{}.pdf'.format(output_dir, result_id)
-    #
-    #         results = comparator(hp, **hp.config)
-    #
-    #         # Continue if no results
-    #         if not results:
-    #             continue
-    #
-    #         hists = list()
-    #
-    #         for i in results.root_artifacts:
-    #             if isinstance(i, np.ndarray): #i.InheritsFrom('TH2') or i.InheritsFrom('TH1'):
-    #                 hists.append(i)
-    #
-    #         # Make json
-    #         info = {
-    #             'id': result_id,
-    #             'name': hp.data_name,
-    #             'comparator': comp_name,
-    #             'display': results.show or hp.config.get('always_show', False),
-    #             'info': results.info,
-    #             'artifacts': results.root_artifacts,
-    #             'hists' : hists
-    #         }
-    #
-    #         hist_outputs.append(info)
 
     return hist_outputs
 
@@ -153,6 +100,7 @@ def compile_histpairs(config_dir, subsystem,
     conf_list = config["hists"]
     main_gdir = config["main_gdir"]
 
+
     data_file = uproot.open(data_path)
     ref_file = uproot.open(ref_path)
     ref_files_list = [uproot.open(x) for x in ref_list]
@@ -172,10 +120,10 @@ def compile_histpairs(config_dir, subsystem,
         ref_dirname = "{0}{1}".format(main_gdir.format(ref_run), gdir)
         ref_dirnames_list = ["{0}{1}".format(main_gdir.format(x), gdir) for x in ref_runs_list]
 
+
         data_dir = data_file[data_dirname[:-1]]
         ref_dir = ref_file[ref_dirname[:-1]]
         ref_dirs_list = [x[y[:-1]] for x,y in zip(ref_files_list, ref_dirnames_list)]
-
 
         if not data_dir:
             raise error(
@@ -202,9 +150,10 @@ def compile_histpairs(config_dir, subsystem,
                  try:
                      data_hist = data_dir[h]
                      ref_hist = ref_dir[h]
+                     ref_hists_list = [x[h] for x in ref_dirs_list]
                  except Exception as e:
                      continue
-                 ref_hists_list = [x[h] for x in ref_dirs_list]
+
                  hPair = HistPair(hconf,
                                   data_series, data_sample, data_run, str(h), data_hist,
                                   ref_series, ref_sample, ref_run, str(h), ref_hist,
@@ -219,9 +168,10 @@ def compile_histpairs(config_dir, subsystem,
                         try:
                             data_hist = data_dir[name[:-2]]
                             ref_hist = ref_dir[name[:-2]]
+                            ref_hists_list = [x[name[:-2]] for x in ref_dirs_list]
                         except Exception as e:
                             continue
-                        ref_hists_list = [x[name[:-2]] for x in ref_dirs_list]
+
                         hPair = HistPair(hconf,
                                          data_series, data_sample, data_run, str(name[:-2]), data_hist,
                                          ref_series, ref_sample, ref_run, str(name[:-2]), ref_hist,

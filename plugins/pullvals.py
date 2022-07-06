@@ -17,6 +17,7 @@ def pullvals(histpair,
     """Can handle poisson driven TH2s or generic TProfile2Ds"""
     data_hist = histpair.data_hist
     ## if ref hist is empty, don't include it
+
     ref_hists_list = [x for x in histpair.ref_hists_list if np.round(x.values()).sum() > 0]
 
 
@@ -40,7 +41,7 @@ def pullvals(histpair,
     ## only fuilled bins used for calculating chi2
     nBinsUsed = np.count_nonzero(np.add(ref_list_raw.sum(axis=0), data_raw))
 
-    if nBinsUsed > 0:
+    if nBinsUsed > 0 and nRef > 0:
         pulls = pull(data_raw, ref_list_raw)
         chi2 = np.square(pulls).sum()/nBinsUsed if nBinsUsed > 0 else 0
         max_pull = maxPullNorm(np.amax(pulls), nBinsUsed)
@@ -81,14 +82,16 @@ def pull(D_raw, R_list_raw):
     prob = np.zeros_like(D_raw)
     if (D_raw.sum() <= 0) or (np.array(R_list_raw.flatten()).sum() <= 0):
         pull = np.zeros_like(D_raw)
+        D_norm = 1.0
+
     else:
         for R_raw in R_list_raw:
             prob += ProbRel(D_raw, R_raw, 'BetaB')
         prob*=1/nRef
         pull = Sigmas(prob)
+        ## get normalized data to get sign on pull
+        D_norm = D_raw * R_list_raw.mean(axis=0).sum()/D_raw.sum()
 
-    ## get normalized data to get sign on pull
-    D_norm = D_raw * R_list_raw.mean(axis=0).sum()/D_raw.sum()
     pull = pull*np.sign(D_norm-R_list_raw.mean(axis=0))
 
     return pull
@@ -209,15 +212,14 @@ def ProbRel(Data, Ref, func, kurt=0):
     ## Sanity check to not have relative likelihood > 1
     cond = maxProb < thisProb
 
-    if any(cond.flatten()):
-        print(f'for ProbRel')
-        print(f'Data: {Data[cond]}\nnData: {nData}\nRef: {Ref[cond]}\nnRef: {nRef}')
 
+    #if any(cond.flatten()):
+    #    print(f'for ProbRel')
+    #    print(f'Data: {Data[cond]}\nnData: {nData}\nRef: {Ref[cond]}\nnRef: {nRef}')
 
     ## make sure check for thisProb < maxProb*0.001 (account for floating point inaccuracies) and just set the ratio to 1 if that is the case
     ratio = thisProb/maxProb
     ratio[cond] = 1
-
 
     return ratio #thisProb / maxProb
 
