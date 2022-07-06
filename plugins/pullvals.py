@@ -82,15 +82,21 @@ def pull(D_raw, R_list_raw):
     prob = np.zeros_like(D_raw)
     if (D_raw.sum() <= 0) or (np.array(R_list_raw.flatten()).sum() <= 0):
         pull = np.zeros_like(D_raw)
+        D_norm = 1.0
+
     else:
         for R_raw in R_list_raw:
             prob += ProbRel(D_raw, R_raw, 'BetaB')
         prob*=1/nRef
         pull = Sigmas(prob)
+        ## get normalized data to get sign on pull
+        D_norm = D_raw * R_list_raw.mean(axis=0).sum()/D_raw.sum()
 
-    ## get normalized data to get sign on pull
-    D_norm = D_raw * R_list_raw.mean(axis=0).sum()/D_raw.sum()
     pull = pull*np.sign(D_norm-R_list_raw.mean(axis=0))
+
+    print(R_list_raw)
+    print('------------------')
+
 
     return pull
 
