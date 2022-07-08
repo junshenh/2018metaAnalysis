@@ -47,6 +47,9 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
 
     ## only fuilled bins used for calculating chi2
     nBinsUsed = np.count_nonzero(np.add(ref_list_raw.mean(axis=0), data_raw))
+    print("-----------------")
+    print(histpair.data_name)
+
 
     if nBinsUsed > 0 and len(ref_hists_list):
         pulls = pullvals.pull(data_raw, ref_list_raw)
@@ -64,7 +67,8 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     for ref_norm in ref_list_norm:
         kslist.append(scipy.stats.kstest(ref_norm, data_norm)[0])
     ks = np.mean(kslist)
-
+    print("--.--.--")
+    print(kslist)
     is_outlier = is_good and ks > ks_cut
 
     canv = None
@@ -87,3 +91,4 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
         show=is_outlier,
         info=info,
         artifacts=artifacts)
+    

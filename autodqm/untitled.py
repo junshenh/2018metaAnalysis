@@ -27,7 +27,7 @@ args = parser.parse_args()
 condition = ''
 
 config_dir = '../config'
-subsystem = 'uGMT'
+subsystem = 'L1T_online'
 data_series = 'Run2018'
 data_sample = 'L1T'
 ref_series = 'Run2018'
@@ -165,8 +165,8 @@ hists2d.to_csv(f'csv/hists2d_{jsonname}_{subsystem}.csv', index=False)
 hists1d.to_csv(f'csv/hists1d_{jsonname}_{subsystem}.csv', index=False)
 
 
-#import sys
-#sys.exit()
+import sys
+sys.exit()
 os.makedirs(plotdir, exist_ok=True)
 
 ## heatmaps for pulls

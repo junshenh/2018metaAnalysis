@@ -41,6 +41,11 @@ def pullvals(histpair,
     ## only fuilled bins used for calculating chi2
     nBinsUsed = np.count_nonzero(np.add(ref_list_raw.sum(axis=0), data_raw))
 
+
+    print("..............")
+    print(histpair.data_name)
+    print(histpair.data_run)
+
     if nBinsUsed > 0 and nRef > 0:
         pulls = pull(data_raw, ref_list_raw)
         chi2 = np.square(pulls).sum()/nBinsUsed if nBinsUsed > 0 else 0
@@ -91,6 +96,11 @@ def pull(D_raw, R_list_raw):
         pull = Sigmas(prob)
         ## get normalized data to get sign on pull
         D_norm = D_raw * R_list_raw.mean(axis=0).sum()/D_raw.sum()
+
+
+    print(D_raw.sum())
+    print(",")
+    print(D_raw)
 
     pull = pull*np.sign(D_norm-R_list_raw.mean(axis=0))
 
