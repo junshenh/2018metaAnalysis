@@ -163,78 +163,73 @@ os.makedirs('csv', exist_ok=True)
 jsonname = args.jsonfile.split(".")[0]
 hists2d.to_csv(f'csv/hists2d_{jsonname}_{subsystem}.csv', index=False)
 hists1d.to_csv(f'csv/hists1d_{jsonname}_{subsystem}.csv', index=False)
-
-
+print('csv files made')
 import sys
 sys.exit()
 os.makedirs(plotdir, exist_ok=True)
 
 ## heatmaps for pulls
-if True:
-    maxpullval = 40
-    minpullval = -40
-    figsize = (12,7)
+maxpullval = 40
+minpullval = -40
+figsize = (12,7)
 
-    # colorbar
-    colors = ['#1e28e9','#d0e5d2', '#b84323']##['#d0e5d2', '#b84323']#
-    cmap = mpl.colors.LinearSegmentedColormap.from_list('autodqm scheme', colors, N = 255)
+# colorbar
+colors = ['#1e28e9','#d0e5d2', '#b84323']##['#d0e5d2', '#b84323']#
+cmap = mpl.colors.LinearSegmentedColormap.from_list('autodqm scheme', colors, N = 255)
 
-    top5chi2 = hists2d.sort_values(by='chi2',ascending=False).histnames[:5].to_list()
+top5chi2 = hists2d.sort_values(by='chi2',ascending=False).histnames[:5].to_list()
 
-    searchfor = ['cscLCTStrip', 'cscLCTWire', 'cscChamberStrip', 'cscChamberWire', 'rpcChamberPhi', 'rpcChamberTheta', 'rpcHitPhi', 'rpcHitTheta']
-    pullhist2d = hists2d[~hists2d['histnames'].str.contains('|'.join(searchfor))]
-    top5maxpull = pullhist2d.sort_values(by='maxpull',ascending=False).histnames[:5].to_list()
-    l = ['emtfTrackOccupancy',   'cscLCTTimingBX0', 'cscDQMOccupancy']
-    l = top5chi2 + top5maxpull + l
+searchfor = ['cscLCTStrip', 'cscLCTWire', 'cscChamberStrip', 'cscChamberWire', 'rpcChamberPhi', 'rpcChamberTheta', 'rpcHitPhi', 'rpcHitTheta']
+pullhist2d = hists2d[~hists2d['histnames'].str.contains('|'.join(searchfor))]
+top5maxpull = pullhist2d.sort_values(by='maxpull',ascending=False).histnames[:5].to_list()
+l = ['emtfTrackOccupancy',   'cscLCTTimingBX0', 'cscDQMOccupancy']
+l = top5chi2 + top5maxpull + l
 
-    l = hists2d.histnames
+l = hists2d.histnames
 
-    for i,x in enumerate(histnames2d):
-        # check if anything in l is in histname2d
-        if any(substring in x for substring in l):
-            histvals = pulls2d[i][0]
-            histedges = pulls2d[i][1]
-            xedges = getBinCenter(histedges[0])
-            yedges = getBinCenter(histedges[1])
-            fig, ax = plt.subplots(figsize=figsize)
-            norm = mpl.colors.Normalize(vmin=minpullval, vmax=maxpullval)
-            im = ax.pcolormesh(xedges, yedges, histvals.T, cmap=cmap, shading='auto', norm=norm)
-            fig.colorbar(im)
-            ax.set_title(x+condition)
-            #os.makedirs(f'{plotdir}/pulls2d', exist_ok=True)
-            fig.savefig(f'{plotdir}/{x}{condition}.png', bbox_inches='tight') #'pulls2d/{x}-chi2.png', bbox_inches='tight')
-            # plt.show()
-            plt.close('all')
+for i,x in enumerate(histnames2d):
+    # check if anything in l is in histname2d
+    if any(substring in x for substring in l):
+        histvals = pulls2d[i][0]
+        histedges = pulls2d[i][1]
+        xedges = getBinCenter(histedges[0])
+        yedges = getBinCenter(histedges[1])
+        fig, ax = plt.subplots(figsize=figsize)
+        norm = mpl.colors.Normalize(vmin=minpullval, vmax=maxpullval)
+        im = ax.pcolormesh(xedges, yedges, histvals.T, cmap=cmap, shading='auto', norm=norm)
+        fig.colorbar(im)
+        ax.set_title(x+condition)
+        #os.makedirs(f'{plotdir}/pulls2d', exist_ok=True)
+        fig.savefig(f'{plotdir}/{x}{condition}.png', bbox_inches='tight') #'pulls2d/{x}-chi2.png', bbox_inches='tight')
+        # plt.show()
+        plt.close('all')
 
-    #%%
+#%%
 
-    top5chi2 = hists1d.sort_values(by='chi2',ascending=False).histnames[:5].to_list()
+top5chi2 = hists1d.sort_values(by='chi2',ascending=False).histnames[:5].to_list()
 
-    searchfor = ['cscLCTStrip', 'cscLCTWire', 'cscChamberStrip', 'cscChamberWire', 'rpcChamberPhi', 'rpcChamberTheta', 'rpcHitPhi', 'rpcHitTheta']
-    pullhist1d = hists1d[~hists1d['histnames'].str.contains('|'.join(searchfor))]
+searchfor = ['cscLCTStrip', 'cscLCTWire', 'cscChamberStrip', 'cscChamberWire', 'rpcChamberPhi', 'rpcChamberTheta', 'rpcHitPhi', 'rpcHitTheta']
+pullhist1d = hists1d[~hists1d['histnames'].str.contains('|'.join(searchfor))]
 
-    top5maxpull = hists1d.sort_values(by='maxpull',ascending=False).histnames[:5].to_list()
-    l = ['emtfTrackEta']
-    l = top5chi2 + top5maxpull + l
+top5maxpull = hists1d.sort_values(by='maxpull',ascending=False).histnames[:5].to_list()
+l = ['emtfTrackEta']
+l = top5chi2 + top5maxpull + l
 
-    l = hists1d.histnames
+l = hists1d.histnames
 
-    for i,x in enumerate(histnames1d):
-        if any(substring in x for substring in l):
-            histvals = pulls1d[i][0]
-            histedge = pulls1d[i][1]
+for i,x in enumerate(histnames1d):
+    if any(substring in x for substring in l):
+        histvals = pulls1d[i][0]
+        histedge = pulls1d[i][1]
 
-            xedges = getBinCenter(histedge)
-            width = histedge[1] - histedge[0]
-            fig, ax = plt.subplots(figsize=figsize)
-            ax.bar(xedges, histvals, width)
-            ax.set_title(x+condition)
-            ax.set_ylim([minpullval, maxpullval])
-            if x == 'emtfTracknHits':
-                for a, b in zip(xedges, histvals):
-                    ax.text(a, b, b)
-                    print("loading")
-            #os.makedirs(f'{plotdir}/pulls1d', exist_ok=True)
-            fig.savefig(f'{plotdir}/{x}{condition}.png', bbox_inches='tight')#pulls1d/{x}-chi2.png', bbox_inches='tight')
-            # plt.show()
-            plt.close('all')
+        xedges = getBinCenter(histedge)
+        width = histedge[1] - histedge[0]
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.bar(xedges, histvals, width)
+        ax.set_title(x+condition)
+        ax.set_ylim([minpullval, maxpullval])
+        #os.makedirs(f'{plotdir}/pulls1d', exist_ok=True)
+        fig.savefig(f'{plotdir}/{x}{condition}.png', bbox_inches='tight')#pulls1d/{x}-chi2.png', bbox_inches='tight')
+        # plt.show()
+        plt.close('all')
+
