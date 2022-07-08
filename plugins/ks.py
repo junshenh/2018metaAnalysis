@@ -20,7 +20,7 @@ def comparators():
 def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
 
     data_hist = histpair.data_hist
-    ref_hists_list = [x for x in histpair.ref_hists_list if np.round(x.values()).sum() > 0]
+    ref_hists_list = [x for x in histpair.ref_hists_list ]#if np.round(x.values()).sum() > 0]
 
     # check for 1d hists and that refs are not empty
     if "TH1" not in str(type(data_hist)) :
@@ -54,7 +54,7 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     if nBinsUsed > 0 and len(ref_hists_list):
         pulls = pullvals.pull(data_raw, ref_list_raw)
         chi2 = np.square(pulls).sum()/nBinsUsed
-        max_pull = pullvals.maxPullNorm(np.amax(pulls), nBinsUsed).max()
+        max_pull = pullvals.maxPullNorm(np.amax(np.abs(pulls)), nBinsUsed).max()
     else:
         pulls = np.zeros_like(data_raw)
         chi2 = 0
@@ -67,10 +67,10 @@ def ks(histpair, ks_cut=0.09, min_entries=100000, **kwargs):
     for ref_norm in ref_list_norm:
         kslist.append(scipy.stats.kstest(ref_norm, data_norm)[0])
     ks = np.mean(kslist)
+
     print("--.--.--")
     print(kslist)
     is_outlier = is_good and ks > ks_cut
-
     canv = None
     artifacts = [pulls]
 
