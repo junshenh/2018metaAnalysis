@@ -18,7 +18,7 @@ def pullvals(histpair,
     data_hist = histpair.data_hist
     ## if ref hist is empty, don't include it
 
-    ref_hists_list = [x for x in histpair.ref_hists_list if np.round(x.values()).sum() > 0]
+    ref_hists_list = [x for x in histpair.ref_hists_list]# if np.round(x.values()).sum() > 0]
 
 
     ## check to make sure histogram is TH2
@@ -44,7 +44,7 @@ def pullvals(histpair,
     if nBinsUsed > 0 and nRef > 0:
         pulls = pull(data_raw, ref_list_raw)
         chi2 = np.square(pulls).sum()/nBinsUsed if nBinsUsed > 0 else 0
-        max_pull = maxPullNorm(np.amax(pulls), nBinsUsed)
+        max_pull = maxPullNorm(np.amax(np.abs(pulls)), nBinsUsed)
     else:
         pulls = np.zeros_like(data_raw)
         chi2 = 0
